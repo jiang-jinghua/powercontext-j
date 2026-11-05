@@ -1,0 +1,92 @@
+[
+  {
+    "input": {
+      "player": "verify-2ad25fdff818",
+      "action": "开始",
+      "request_id": "0"
+    },
+    "output": {
+      "story": "欢迎来到回声旅店。桌上有一把遗失的钥匙，柜台后藏着一本账本。",
+      "trust": 0,
+      "turn": 1,
+      "choices": [
+        "归还钥匙",
+        "偷看账本",
+        "询问秘密"
+      ],
+      "storage": "seekdb"
+    }
+  },
+  {
+    "input": {
+      "player": "verify-2ad25fdff818",
+      "action": "询问秘密",
+      "request_id": "1"
+    },
+    "output": {
+      "story": "店主合上账本：我们还不够熟。先帮我找回钥匙吧。",
+      "trust": 0,
+      "turn": 2,
+      "choices": [
+        "归还钥匙",
+        "偷看账本",
+        "询问秘密"
+      ],
+      "storage": "seekdb"
+    }
+  },
+  {
+    "input": {
+      "player": "verify-2ad25fdff818",
+      "action": "归还钥匙",
+      "request_id": "2"
+    },
+    "output": {
+      "story": "店主收下钥匙：我会记住你的善意。",
+      "trust": 1,
+      "turn": 3,
+      "choices": [
+        "归还钥匙",
+        "偷看账本",
+        "询问秘密"
+      ],
+      "storage": "seekdb"
+    }
+  },
+  {
+    "input": {
+      "player": "verify-2ad25fdff818",
+      "action": "询问秘密",
+      "request_id": "3"
+    },
+    "output": {
+      "story": "店主递来地下室钥匙：雨夜失踪的人，是未来的我。",
+      "trust": 1,
+      "turn": 4,
+      "choices": [
+        "归还钥匙",
+        "偷看账本",
+        "询问秘密"
+      ],
+      "storage": "seekdb"
+    }
+  },
+  {
+    "input": {
+      "player": "verify-2ad25fdff818",
+      "action": "开始",
+      "request_id": "4"
+    },
+    "output": {
+      "story": "你又回来了。店主仍记得你，信任度：1",
+      "trust": 1,
+      "turn": 5,
+      "choices": [
+        "归还钥匙",
+        "偷看账本",
+        "询问秘密"
+      ],
+      "storage": "seekdb"
+    }
+  }
+]

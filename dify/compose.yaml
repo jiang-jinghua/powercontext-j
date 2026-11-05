@@ -1,0 +1,19 @@
+services:
+  seekdb:
+    image: oceanbase/seekdb:latest
+    environment:
+      ROOT_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+    volumes:
+      - seekdata:/var/lib/seekdb
+  api:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      DB_HOST: seekdb
+      DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+      GAME_TOKEN: ${GAME_TOKEN:?set GAME_TOKEN}
+    depends_on:
+      - seekdb
+volumes:
+  seekdata:
