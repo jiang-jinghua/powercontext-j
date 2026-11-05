@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>温故 · AI 学习复习助手</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">温故</span>
+    <span class="slogan">温故而知新 · 学习知识点 + 间隔重复复习</span>
+  </div>
+  <div class="mode-badge" id="modeBadge">数据源：内置演示</div>
+</header>
+
+<main class="container">
+  <!-- 统计条 -->
+  <section class="stats" id="statsBar"></section>
+
+  <!-- Tab 导航 -->
+  <nav class="tabs">
+    <button class="tab active" data-tab="review">今日复习</button>
+    <button class="tab" data-tab="library">知识库</button>
+    <button class="tab" data-tab="search">智能搜索</button>
+    <button class="tab" data-tab="context">上下文召回</button>
+    <button class="tab" data-tab="datasource">数据源</button>
+    <button class="tab" data-tab="logs">调用日志</button>
+  </nav>
+
+  <!-- 今日复习 -->
+  <section class="panel active" id="panel-review">
+    <div class="panel-head">
+      <h2>今日复习</h2>
+      <button class="btn primary" id="btnAddKnowledge">+ 添加知识点</button>
+    </div>
+    <div id="reviewArea"></div>
+  </section>
+
+  <!-- 知识库 -->
+  <section class="panel" id="panel-library">
+    <div class="panel-head">
+      <h2>知识库</h2>
+      <input type="text" id="libFilter" class="input" placeholder="按课程/标题过滤...">
+    </div>
+    <div id="libraryList"></div>
+  </section>
+
+  <!-- 智能搜索 -->
+  <section class="panel" id="panel-search">
+    <div class="panel-head"><h2>智能搜索</h2></div>
+    <p class="hint">通过 seekdb 的全文索引（MATCH ... AGAINST）在知识点标题与正文上做相关性检索。演示模式下使用本地匹配模拟同一检索语义。</p>
+    <div class="search-row">
+      <input type="text" id="searchInput" class="input grow" placeholder="例如：TCP 拥塞控制 / 贝叶斯 / 记忆曲线">
+      <button class="btn primary" id="btnSearch">搜索</button>
+    </div>
+    <div id="searchResults"></div>
+  </section>
+
+  <!-- 上下文召回 -->
+  <section class="panel" id="panel-context">
+    <div class="panel-head"><h2>上下文召回（PowerContext）</h2></div>
+    <p class="hint">每次复习会话与掌握判定都会写入 PowerContext（Source 证据 + Memory 决策）。这里调用 <code>POST /v1/context/prepare</code> 读取有界历史上下文，展示「你过去学过什么、做过哪些决定」。演示模式下使用本地记录模拟。</p>
+    <div class="search-row">
+      <input type="text" id="ctxQuery" class="input grow" placeholder="例如：我之前对 TCP 复习做过什么决定？">
+      <button class="btn primary" id="btnCtx">召回</button>
+    </div>
+    <pre id="ctxResult" class="code-block">（尚未召回）</pre>
+  </section>
+
+  <!-- 数据源 -->
+  <section class="panel" id="panel-datasource">
+    <div class="panel-head"><h2>数据源配置</h2></div>
+    <p class="hint">本站支持三种数据源模式。<b>内置演示</b>：任何人打开即可体验全部功能（评委无需配置）；<b>真实接入</b>：填入 seekdb D0 实例与 PowerContext Server 地址，通过本地代理真实读写。配置仅保存在浏览器本地，不会上传。</p>
+
+    <div class="form-card">
+      <label class="radio-row"><input type="radio" name="dsMode" value="mock" id="dsMock"> <b>内置演示模式</b>（无需任何账号，评委打开即用）</label>
+      <label class="radio-row"><input type="radio" name="dsMode" value="real" id="dsReal"> <b>真实接入模式</b>（seekdb + PowerContext，经本地代理）</label>
+
+      <div id="realCfg" style="display:none">
+        <h3>本地代理</h3>
+        <label>代理地址（本地运行 <code>node server/proxy.mjs</code> 后默认为）</label>
+        <input type="text" id="cfgProxy" class="input" placeholder="http://127.0.0.1:8787">
+
+        <h3>seekdb D0（OceanBase AI 原生混合搜索数据库）</h3>
+        <label>instance_id / 密码（在 d0.seekdb.ai 一行 curl 创建实例后获得，密码仅返回一次）</label>
+        <div class="row2">
+          <input type="text" id="cfgSeekdbId" class="input" placeholder="instance_id">
+          <input type="password" id="cfgSeekdbPwd" class="input" placeholder="password（仅存本地）">
+        </div>
+
+        <h3>PowerContext（AI Agent 上下文服务）</h3>
+        <div class="row2">
+          <input type="text" id="cfgPcUrl" class="input" placeholder="Server 地址，如 http://127.0.0.1:8000">
+          <input type="text" id="cfgPcScope" class="input" placeholder="scope_id（POST /v1/scopes 返回）">
+        </div>
+        <label>Bearer Token（启用 Server 鉴权时填写，可选）</label>
+        <input type="password" id="cfgPcToken" class="input" placeholder="仅存本地，不写入任何提交材料">
+        <div class="actions">
+          <button class="btn" id="btnInitDb">初始化 seekdb 表结构</button>
+          <button class="btn primary" id="btnSaveCfg">保存配置</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 调用日志 -->
+  <section class="panel" id="panel-logs">
+    <div class="panel-head">
+      <h2>API 调用日志</h2>
+      <div>
+        <button class="btn" id="btnExportLog">导出 JSON（用于验证说明）</button>
+        <button class="btn danger" id="btnClearLog">清空</button>
+      </div>
+    </div>
+    <p class="hint">记录每一次对 seekdb / PowerContext 的真实调用：时间、接口、请求体、响应与状态，可直接作为提交材料「验证说明」的运行记录。</p>
+    <div id="logList"></div>
+  </section>
+</main>
+
+<!-- 添加知识点弹窗 -->
+<div class="modal-mask" id="modalAdd" style="display:none">
+  <div class="modal">
+    <h3>添加知识点</h3>
+    <label>课程 *</label>
+    <input type="text" id="kpCourse" class="input" placeholder="如：计算机网络 / 高等数学">
+    <label>知识点标题 *</label>
+    <input type="text" id="kpTitle" class="input" placeholder="如：TCP 拥塞控制的四个阶段">
+    <label>内容 / 笔记</label>
+    <textarea id="kpContent" class="input" rows="5" placeholder="写下要点，之后复习时会展示在卡片背面"></textarea>
+    <label>标签（逗号分隔）</label>
+    <input type="text" id="kpTags" class="input" placeholder="如：网络,TCP">
+    <div class="actions">
+      <button class="btn" id="btnCancelAdd">取消</button>
+      <button class="btn primary" id="btnSaveKp">保存</button>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  温故 ReviewMate · 用 Qoder 开发 · 数据底座 seekdb（OceanBase） · 上下文 PowerContext · 发布于 Qoder Sites
+</footer>
+
+<script src="js/store.js"></script>
+<script src="js/adapters.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
