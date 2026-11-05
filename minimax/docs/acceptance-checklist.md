@@ -13,6 +13,9 @@
 
 ## 复核要点
 
+> 交付说明：仓库内 `runs/` 的样例运行使用 `manual` 提供方（无 Key 环境下可复核链路）；
+> 评审用 `--provider minimax` 重跑时，真实的 MiniMax 请求/响应会写入新的 `runs/<run_id>/model/`。
+
 - **测试集未改**：补丁应用器拒绝任何 `tests/` 路径；`runs/*/snapshots/` 只保存 `src/` 下被改文件；
   `tests_untouched` 为 `true`。
 - **来源真实存在**：上下文中的 `source` 形如 `specs/promotion.md:12-15`，行号对应条款标题；
