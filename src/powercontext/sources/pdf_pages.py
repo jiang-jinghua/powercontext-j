@@ -132,7 +132,16 @@ _INTENT_RULES: Final = (
     ("segment", ("segment",)),
     ("tax", ("tax rate", "effective tax", "income tax")),
     ("margin", ("margin",)),
-    ("cashflow", ("cash flow", "operating activities", "investing", "financing")),
+    ("cashflow", (
+        "cash flow",
+        "operating activities",
+        "investing",
+        "financing",
+        "capital expenditure",
+        "capital-intensive",
+        "capital intensive",
+        "capex",
+    )),
     ("employees", ("employee", "headcount", "workforce")),
     ("cyclical", ("cyclical",)),
     ("production", ("production rate", "build rate")),
@@ -140,7 +149,7 @@ _INTENT_RULES: Final = (
     ("restructuring", ("restructur",)),
     ("dividend", ("dividend", "repurchase", "buyback")),
     ("ebitda", ("ebitda", "depreciation", "amortization")),
-    ("revmix", ("categor", "disaggregat")),
+    ("revmix", ("categor", "disaggregat", "acquisition", "divestiture", "m&a", "organic sales")),
 )
 _INTENT_PROBES: Final = {
     "liquidity": ("liquidity", "current assets", "current liabilities", "working capital"),
@@ -159,7 +168,16 @@ _INTENT_PROBES: Final = {
     "restructuring": ("restructuring",),
     "dividend": ("dividends", "share repurchase"),
     "ebitda": ("ebitda", "depreciation and amortization", "operating income"),
-    "revmix": ("business segment data", "segment data", "disaggregation of revenue", "revenues by", "sales of products"),
+    "revmix": (
+        "business segment data",
+        "segment data",
+        "disaggregation of revenue",
+        "revenues by",
+        "sales of products",
+        "organic sales",
+        "sales change",
+        "acquisitions divestitures",
+    ),
 }
 _STATEMENT_PROBES: Final = (
     "consolidated statements of operations year ended december 31",
@@ -412,14 +430,18 @@ def _rank(candidates: tuple[_Candidate, ...], query: tuple[str, ...], intents: f
     if intents & _METRIC_INTENTS:
         reserved: list[_Candidate] = []
         for statement in ("income", "balance", "cashflow"):
-            # A statement page opens with its title; a mention further down is prose.
-            best = min(
-                (item for item in ranked if item.statement == statement and (focus is None or item.document == focus)),
-                key=lambda item: (item.statement_offset, ranked.index(item)),
-                default=None,
-            )
-            if best is not None:
-                reserved.append(best)
+            # A statement page opens with its title; a mention further down is prose. A
+            # statement often spans two physical pages, so keep both the opening page and
+            # its continuation visible rather than betting on a single offset.
+            matches = [
+                item
+                for item in ranked
+                if item.statement == statement and (focus is None or item.document == focus)
+            ]
+            matches.sort(key=lambda item: (item.statement_offset, ranked.index(item)))
+            for best in matches[:2]:
+                if best not in reserved:
+                    reserved.append(best)
         if reserved:
             ranked = reserved + [item for item in ranked if item not in reserved]
     return ranked
@@ -485,12 +507,26 @@ def _score(
             value -= 0.5
     if candidate.is_note and intents & _QUALITATIVE_INTENTS:
         value -= 1.2
+    if "customer" in intents:
+        # Customer-concentration answers usually quote a share of net revenue or sales; a
+        # receivables-only concentration note is credit risk, not the revenue answer.
+        revenue_share = "accounted for" in candidate.text and (
+            "net revenue" in candidate.text or "net sales" in candidate.text or "revenue" in candidate.text
+        )
+        if revenue_share:
+            value += 1.5
+        if "accounts receivable" in candidate.text and "net revenue" not in candidate.text:
+            value -= 1.0
     if "revmix" in intents:
         revenue = candidate.counts.get("revenu", 0) + candidate.counts.get("sale", 0)
         if length < 400 and revenue >= 3:
             value += 1.6
         if candidate.counts.get("segment", 0) and candidate.counts.get("revenu", 0):
             value += 1.2
+        if candidate.counts.get("segment", 0) and (
+            "organic sales" in candidate.text or "sales change" in candidate.text
+        ):
+            value += 1.5
     for intent in intents:
         for probe in _INTENT_PROBES.get(intent, ()):
             if probe in candidate.head:

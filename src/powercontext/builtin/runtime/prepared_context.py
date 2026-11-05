@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
@@ -181,7 +182,7 @@ class PreparedContextBuilder:
         """Select literal evidence slices for the query under the output byte budget."""
 
         fitted: list[MemoryFragment] = []
-        for fragment in _select_memory_fragments(request.query, memory_candidates):
+        for fragment in _select_memory_fragments(request.query, memory_candidates, request.max_bytes):
             if len(_render_selection([*fitted, fragment]).encode("utf-8")) > request.max_bytes:
                 continue
             fitted.append(fragment)
@@ -785,9 +786,31 @@ _SELECTION_STOPWORDS = frozenset(
 )
 
 
+_FRAGMENT_OVERHEAD_BYTES = 240
+_MIN_FRAGMENT_BYTES = 260
+_MAX_FRAGMENT_WINDOWS = 6
+_MAX_WINDOW_SENTENCES = 4
+
+
+def _stem(term: str) -> str:
+    """Collapse common English inflections so claim and abstract wording meet."""
+
+    if len(term) > 4 and term.endswith("ies"):
+        term = term[:-3] + "y"
+    elif len(term) > 5 and term.endswith("ing"):
+        term = term[:-3]
+    elif len(term) > 4 and term.endswith("ed"):
+        term = term[:-2]
+    elif len(term) > 4 and term.endswith("es"):
+        term = term[:-2]
+    elif len(term) > 3 and term.endswith("s") and not term.endswith(("ss", "us", "is")):
+        term = term[:-1]
+    return term
+
+
 def _selection_terms(query: str) -> frozenset[str]:
     return frozenset(
-        term
+        _stem(term)
         for term in _SELECTION_TERM.findall(query.casefold())
         if len(term) > 1 and term not in _SELECTION_STOPWORDS
     )
@@ -814,39 +837,206 @@ def _sentence_spans(text: str) -> tuple[tuple[int, int], ...]:
 def _select_memory_fragments(
     query: str,
     memory_candidates: Sequence[PreparedMemoryCandidates],
+    max_bytes: int = 1800,
 ) -> list[MemoryFragment]:
-    terms = _selection_terms(query)
-    scored: list[tuple[int, int, int, MemoryFragment]] = []
-    fallback: MemoryFragment | None = None
-    order = 0
+    """Pick contiguous sentence windows that cover the query's rarest terms.
+
+    Candidate spans are scored with inverse sentence frequency over the recalled
+    entries and chosen greedily by newly covered weight per rendered byte, so a
+    two- or three-sentence window that holds a whole argument beats scattered
+    single sentences. Windows from the same entry are then merged into one span
+    (one citation instead of several), and that span grows into neighbouring
+    sentences while the rendered UTF-8 budget allows. Every fragment is an exact
+    ``entry.text[start:end]`` slice.
+    """
+
+    entries: list[tuple[int, str, tuple[tuple[int, int], ...], MemoryEntryAddress]] = []
     for group in memory_candidates:
         for rank, hit in enumerate(group.hits):
-            address = MemoryEntryAddress(
-                memory=ArtifactAddress(scope_id=group.scope_id, artifact=hit.memory_ref),
-                entry_id=hit.entry_id,
-                entry_version_id=hit.entry_version_id,
+            if not hit.text.strip():
+                continue
+            spans = _sentence_spans(hit.text)
+            if not spans:
+                continue
+            entries.append(
+                (
+                    rank,
+                    hit.text,
+                    spans,
+                    MemoryEntryAddress(
+                        memory=ArtifactAddress(scope_id=group.scope_id, artifact=hit.memory_ref),
+                        entry_id=hit.entry_id,
+                        entry_version_id=hit.entry_version_id,
+                    ),
+                )
             )
-            for start, end in _sentence_spans(hit.text):
-                sentence = hit.text[start:end]
-                if fallback is None:
-                    fallback = MemoryFragment(address, start, end, sentence)
-                words = set(_SELECTION_TERM.findall(sentence.casefold()))
-                score = len(terms & words)
-                if score:
-                    scored.append((score, rank, order, MemoryFragment(address, start, end, sentence)))
-                    order += 1
-    if not scored:
-        return [fallback] if fallback is not None else []
-    scored.sort(key=lambda item: (-item[0], item[1], item[2]))
-    fragments: list[MemoryFragment] = []
-    seen: set[tuple[str, str]] = set()
-    for _score, _rank, _order, fragment in scored:
-        key = (fragment.address.entry_id, fragment.text)
-        if key in seen:
+    if not entries:
+        return []
+
+    terms = _selection_terms(query)
+    if not terms:
+        return _selection_fallback(entries, max_bytes)
+
+    sentence_stems = [
+        [
+            frozenset(_stem(token) for token in _SELECTION_TERM.findall(text[start:end].casefold()))
+            for start, end in spans
+        ]
+        for _rank, text, spans, _address in entries
+    ]
+    sentence_frequency: dict[str, int] = {}
+    for stems in sentence_stems:
+        for sentence in stems:
+            for term in sentence:
+                sentence_frequency[term] = sentence_frequency.get(term, 0) + 1
+    total_sentences = sum(len(stems) for stems in sentence_stems)
+    weights = {
+        term: math.log(1 + total_sentences / (1 + sentence_frequency.get(term, 0))) for term in terms
+    }
+
+    candidates: list[tuple[frozenset[str], int, int, int, MemoryFragment]] = []
+    for index, (rank, text, spans, address) in enumerate(entries):
+        stems = sentence_stems[index]
+        for first in range(len(spans)):
+            covered: set[str] = set()
+            for last in range(first, min(first + _MAX_WINDOW_SENTENCES, len(spans))):
+                covered |= stems[last] & terms
+                start, end = spans[first][0], spans[last][1]
+                fragment_text = text[start:end]
+                cost = len(fragment_text.encode("utf-8")) + _FRAGMENT_OVERHEAD_BYTES
+                candidates.append(
+                    (
+                        frozenset(covered),
+                        cost,
+                        rank,
+                        start,
+                        MemoryFragment(address=address, start=start, end=end, text=fragment_text),
+                    )
+                )
+
+    remaining = max_bytes - 160
+    gained: set[str] = set()
+    chosen: list[tuple[int, int, MemoryFragment, frozenset[str]]] = []
+    used: dict[tuple[str, str], list[tuple[int, int]]] = {}
+    while len(chosen) < _MAX_FRAGMENT_WINDOWS and remaining >= _MIN_FRAGMENT_BYTES:
+        best: tuple[frozenset[str], int, int, int, MemoryFragment] | None = None
+        best_value = 0.0
+        for candidate in candidates:
+            covered, cost, rank, start, fragment = candidate
+            if cost > remaining:
+                continue
+            key = (fragment.address.entry_id, fragment.address.memory.artifact.artifact_id)
+            if any(
+                fragment.start <= used_end and fragment.end >= used_start
+                for used_start, used_end in used.get(key, ())
+            ):
+                continue
+            gain = sum(weights[term] for term in covered - gained)
+            if gain <= 0:
+                continue
+            value = gain / cost
+            if value > best_value:
+                best, best_value = candidate, value
+        if best is None:
+            break
+        covered, cost, rank, start, fragment = best
+        chosen.append((rank, start, fragment, covered))
+        gained |= covered
+        key = (fragment.address.entry_id, fragment.address.memory.artifact.artifact_id)
+        used.setdefault(key, []).append((fragment.start, fragment.end))
+        remaining -= cost
+
+    if not chosen:
+        return _selection_fallback(entries, max_bytes)
+    texts = {
+        (address.entry_id, address.memory.artifact.artifact_id): text for _rank, text, _spans, address in entries
+    }
+    grouped: dict[tuple[str, str], list[tuple[int, int, MemoryFragment, frozenset[str]]]] = {}
+    for item in chosen:
+        key = (item[2].address.entry_id, item[2].address.memory.artifact.artifact_id)
+        grouped.setdefault(key, []).append(item)
+    merged: list[tuple[int, int, MemoryFragment, frozenset[str]]] = []
+    for key, items in grouped.items():
+        address = items[0][2].address
+        start = min(item[2].start for item in items)
+        end = max(item[2].end for item in items)
+        text = texts[key]
+        covered = frozenset().union(*(item[3] for item in items))
+        merged.append(
+            (min(item[0] for item in items), start, MemoryFragment(address, start, end, text[start:end]), covered)
+        )
+    merged.sort(key=lambda item: (-sum(weights[term] for term in item[3]), item[0], item[1]))
+    selected: list[tuple[int, int, MemoryFragment]] = []
+    for item in merged:
+        fragment = item[2]
+        if len(_render_selection([*[entry[2] for entry in selected], fragment]).encode("utf-8")) <= max_bytes:
+            selected.append(item[:3])
             continue
-        seen.add(key)
-        fragments.append(fragment)
+        # A merged span can be too large; keep the individual windows that still fit.
+        key = (fragment.address.entry_id, fragment.address.memory.artifact.artifact_id)
+        for original in sorted(grouped[key], key=lambda entry: (entry[0], entry[1])):
+            trial = [*[entry[2] for entry in selected], original[2]]
+            if len(_render_selection(trial).encode("utf-8")) <= max_bytes:
+                selected.append(original[:3])
+    if not selected:
+        return _selection_fallback(entries, max_bytes)
+    selected.sort(key=lambda item: (item[0], item[1]))
+    return _grow_fragments([item[2] for item in selected], entries, max_bytes)
+
+
+def _grow_fragments(
+    fragments: list[MemoryFragment],
+    entries: Sequence[tuple[int, str, tuple[tuple[int, int], ...], MemoryEntryAddress]],
+    max_bytes: int,
+) -> list[MemoryFragment]:
+    """Spend leftover budget by extending windows into adjacent sentences."""
+
+    texts = {(address.entry_id, address.memory.artifact.artifact_id): text for _r, text, _s, address in entries}
+    spans_by_entry = {
+        (address.entry_id, address.memory.artifact.artifact_id): spans for _r, _t, spans, address in entries
+    }
+    grown = True
+    while grown:
+        grown = False
+        for index, fragment in enumerate(fragments):
+            key = (fragment.address.entry_id, fragment.address.memory.artifact.artifact_id)
+            text = texts[key]
+            spans = spans_by_entry[key]
+            proposals: list[MemoryFragment] = []
+            end_index = next((k for k, (_s, end) in enumerate(spans) if end == fragment.end), None)
+            if end_index is not None and end_index + 1 < len(spans):
+                end = spans[end_index + 1][1]
+                proposals.append(MemoryFragment(fragment.address, fragment.start, end, text[fragment.start:end]))
+            start_index = next((k for k, (start, _e) in enumerate(spans) if start == fragment.start), None)
+            if start_index is not None and start_index > 0:
+                start = spans[start_index - 1][0]
+                proposals.append(MemoryFragment(fragment.address, start, fragment.end, text[start:fragment.end]))
+            for proposal in proposals:
+                candidate = fragments[:index] + [proposal] + fragments[index + 1 :]
+                if len(_render_selection(candidate).encode("utf-8")) <= max_bytes:
+                    fragments[index] = proposal
+                    grown = True
+                    break
     return fragments
+
+
+def _selection_fallback(
+    entries: Sequence[tuple[int, str, tuple[tuple[int, int], ...], MemoryEntryAddress]],
+    max_bytes: int,
+) -> list[MemoryFragment]:
+    """Keep a short literal window when no query term matched any sentence."""
+
+    budget = max_bytes - 160 - _FRAGMENT_OVERHEAD_BYTES
+    if budget <= 0:
+        return []
+    for _rank, text, spans, address in entries:
+        for first in range(len(spans)):
+            for last in range(first, min(first + 2, len(spans))):
+                start, end = spans[first][0], spans[last][1]
+                fragment_text = text[start:end]
+                if len(fragment_text.encode("utf-8")) <= budget:
+                    return [MemoryFragment(address=address, start=start, end=end, text=fragment_text)]
+    return []
 
 
 def _render_selection(fragments: Sequence[MemoryFragment]) -> str:
