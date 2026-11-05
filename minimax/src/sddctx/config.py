@@ -22,6 +22,7 @@ class Settings:
     minimax_api_key: str | None
     minimax_base_url: str
     minimax_model: str
+    minimax_api_style: str
     minimax_embedding_model: str | None
 
     @property
@@ -54,6 +55,8 @@ def load_settings(
         os.environ.get("SDD_DB_PATH", root / ".sdd" / "seekdb")
     ).resolve()
     state_dir = root / ".sdd"
+    style = os.environ.get("MINIMAX_API_STYLE", "native").lower()
+    default_base = "https://api.minimax.cn/anthropic" if style == "anthropic" else "https://api.minimaxi.com"
     return Settings(
         home=root,
         project_dir=project_dir,
@@ -62,7 +65,8 @@ def load_settings(
         state_db=state_dir / "state.db",
         scheduler_db=state_dir / "state-scheduler.db",
         minimax_api_key=os.environ.get("MINIMAX_API_KEY") or None,
-        minimax_base_url=os.environ.get("MINIMAX_BASE_URL", "https://api.minimaxi.com").rstrip("/"),
+        minimax_base_url=os.environ.get("MINIMAX_BASE_URL", default_base).rstrip("/"),
         minimax_model=os.environ.get("MINIMAX_MODEL", "MiniMax-M3.1-Flash"),
+        minimax_api_style=style,
         minimax_embedding_model=os.environ.get("MINIMAX_EMBEDDING_MODEL") or None,
     )

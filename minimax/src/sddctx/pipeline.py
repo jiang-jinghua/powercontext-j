@@ -70,6 +70,7 @@ class RunResult:
             "status": self.status,
             "verification": self.verification,
             "provider": self.completion.provider,
+            "api_style": self.completion.api_style,
             "model": self.completion.model,
             "context": {
                 "spec": [hit.symbol for hit in self.context.specs],

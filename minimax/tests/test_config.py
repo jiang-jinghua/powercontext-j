@@ -29,3 +29,11 @@ def test_paths_default_below_the_submission_root(tmp_path) -> None:
     assert settings.project_dir == (tmp_path / "demo" / "order-service").resolve()
     assert settings.db_path == (tmp_path / ".sdd" / "seekdb").resolve()
     assert settings.runs_dir == (tmp_path / "runs").resolve()
+
+
+def test_anthropic_style_selects_the_subscription_endpoint(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("MINIMAX_API_STYLE", "anthropic")
+    monkeypatch.delenv("MINIMAX_BASE_URL", raising=False)
+    settings = load_settings(home=tmp_path)
+    assert settings.minimax_api_style == "anthropic"
+    assert settings.minimax_base_url == "https://api.minimax.cn/anthropic"

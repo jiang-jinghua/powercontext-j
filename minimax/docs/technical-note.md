@@ -36,7 +36,7 @@ sddctx
 
 | 技术 | 承担的工作 | 不可替代的原因 |
 | --- | --- | --- |
-| MiniMax | 阅读上下文包，输出 unified diff | 代码修改由模型完成，提示词包含规格原文、现有实现与验证测试 |
+| MiniMax | 阅读上下文包，输出 unified diff | 代码修改由模型完成，提示词包含规格原文、现有实现与验证测试；支持 M Plan 订阅 Key（Anthropic 兼容）与按量 Key（原生接口） |
 | seekdb | 存储 56 个工程片段并执行全文/精确查询 | 上下文中的 `spec/code/tests` 全部来自数据库返回行；SQL 与耗时被记录 |
 | PowerContext | 保存运行、验证结果、待办；下一次运行读取 | 跨进程恢复：`status` 与 T-002 的 `state` 字段直接来自 Memory 工件 |
 

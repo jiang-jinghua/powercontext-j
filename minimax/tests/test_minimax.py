@@ -7,7 +7,7 @@ import pytest
 
 from sddctx import minimax
 from sddctx.errors import ModelError
-from sddctx.minimax import ManualProvider, MiniMaxClient
+from sddctx.minimax import AnthropicClient, ManualProvider, MiniMaxClient
 
 
 class FakeResponse:
@@ -71,3 +71,46 @@ def test_manual_provider_marks_its_source(tmp_path: Path) -> None:
     assert completion.provider == "manual"
     record = json.loads((tmp_path / "model" / "manual-source.json").read_text(encoding="utf-8"))
     assert record["provider"] == "manual"
+
+
+def test_anthropic_client_uses_the_messages_endpoint(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured.update(url=url, headers=headers or {}, body=json or {})
+        return FakeResponse(
+            {
+                "id": "msg-1",
+                "model": "MiniMax-M3.1-Flash",
+                "content": [
+                    {"type": "thinking", "thinking": "plan"},
+                    {"type": "text", "text": "```diff\n--- a/x\n+++ b/x\n```"},
+                ],
+                "usage": {"input_tokens": 10, "output_tokens": 20},
+            }
+        )
+
+    monkeypatch.setattr(minimax.httpx, "post", fake_post)
+    client = AnthropicClient(api_key="k", base_url="https://api.minimax.cn/anthropic")
+    completion = client.complete(
+        [{"role": "system", "content": "sys"}, {"role": "user", "content": "hi"}]
+    )
+    assert captured["url"].endswith("/v1/messages")
+    assert captured["headers"]["x-api-key"] == "k"
+    assert captured["headers"]["anthropic-version"] == "2023-06-01"
+    assert captured["body"]["system"] == "sys"
+    assert len(captured["body"]["messages"]) == 1
+    assert "--- a/x" in completion.content
+    assert completion.reasoning == "plan"
+    assert completion.api_style == "anthropic"
+
+
+def test_anthropic_balance_error_is_reported(monkeypatch) -> None:
+    payload = {
+        "type": "error",
+        "error": {"type": "insufficient_balance_error", "message": "insufficient balance (1008)"},
+    }
+    monkeypatch.setattr(minimax.httpx, "post", lambda *a, **k: FakeResponse(payload, status_code=402))
+    with pytest.raises(ModelError) as excinfo:
+        AnthropicClient(api_key="k").complete([{"role": "user", "content": "hi"}])
+    assert "402" in str(excinfo.value) and "insufficient" in str(excinfo.value)

@@ -6,6 +6,10 @@ export PYTHONPATH="$PWD/src"
 : "${MINIMAX_API_KEY:?export MINIMAX_API_KEY before running this script}"
 PYTHON="${PYTHON:-python3}"
 
+echo "api style: ${MINIMAX_API_STYLE:-native}"
+echo "base url : ${MINIMAX_BASE_URL:-<default>}"
+echo "model    : ${MINIMAX_MODEL:-MiniMax-M3.1-Flash}"
+
 echo "== reset =="
 "$PYTHON" -m sddctx reset
 echo "== init/import =="

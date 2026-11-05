@@ -23,16 +23,22 @@ python -m sddctx status T-001
 
 ## 用 MiniMax 真实生成补丁
 
+比赛赠送的是 **M Plan 订阅 Key**，走 Anthropic 兼容接口：
+
 ```bash
-export MINIMAX_API_KEY=...            # 必填，不写入仓库
-export MINIMAX_BASE_URL=https://api.minimaxi.com   # 国际站可用 https://api.minimax.io
-export MINIMAX_MODEL=MiniMax-M3.1-Flash
+export MINIMAX_API_KEY='订阅 Key'          # 套餐详情页复制，不是接口密钥页的按量 Key
+export MINIMAX_API_STYLE='anthropic'
+export MINIMAX_BASE_URL='https://api.minimax.cn/anthropic'
+export MINIMAX_MODEL='MiniMax-M3.1-Flash'
 
 python -m sddctx reset                 # 清空 seekdb 与 PowerContext 状态
 python -m sddctx init
 python -m sddctx import
 python -m sddctx run T-001 --provider minimax
 ```
+
+若使用按量付费 API Key，则设 `MINIMAX_API_STYLE=native`、`MINIMAX_BASE_URL=https://api.minimaxi.com`
+（国际站 `https://api.minimax.io`）。
 
 运行目录下的 `model/minimax-request-*.json`、`model/minimax-response-*.json` 是原始调用记录；
 `diff.patch`、`pytest-before.log`、`pytest-after.log`、`result.json` 是这次修改的证据链。
@@ -54,7 +60,7 @@ python -m sddctx run T-001 --provider minimax
 
 | 技术 | 实际承担的工作 | 接入方式与版本 |
 | --- | --- | --- |
-| MiniMax | 读取检索出的规格/代码/测试上下文，生成 unified diff | HTTP `POST /v1/text/chatcompletion_v2`，默认 `MiniMax-M3.1-Flash` |
+| MiniMax | 读取检索出的规格/代码/测试上下文，生成 unified diff | M Plan：Anthropic 兼容 `POST /v1/messages`；按量：`POST /v1/text/chatcompletion_v2`；默认 `MiniMax-M3.1-Flash` |
 | seekdb | 存储规格条款、代码符号、测试函数；`MATCH … AGAINST` 全文检索 + 精确来源查询 | `pylibseekdb` 嵌入式（Linux/macOS），或 OceanBase/seekdb MySQL 协议 |
 | PowerContext | 保存每次运行、验证结果、待办；重启后由 `status` 与下一次 `context` 读取 | `powercontext[server]==1.2.0` 进程内 `open_builtin_runtime`，Memory 工件（SQLite） |
 

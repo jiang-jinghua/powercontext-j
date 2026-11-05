@@ -12,7 +12,7 @@ from .config import Settings, load_settings
 from .context import pack_json, render_markdown
 from .corpus import load_project
 from .errors import SddError
-from .minimax import ManualProvider, MiniMaxClient
+from .minimax import ManualProvider, build_client
 from .pipeline import render_status, run_task
 from .retrieve import Task, retrieve
 from .state import StateStore
@@ -70,10 +70,11 @@ def cmd_run(args: argparse.Namespace) -> int:
             raise SddError("--provider manual needs --patch <file>")
         provider = ManualProvider(Path(args.patch).resolve())
     else:
-        provider = MiniMaxClient(
+        provider = build_client(
             api_key=settings.require_minimax(),
             base_url=settings.minimax_base_url,
             model=args.model or settings.minimax_model,
+            api_style=args.api_style or settings.minimax_api_style,
         )
     with CorpusStore.open(db_path=settings.db_path) as store:
         store.ensure_schema()
@@ -159,6 +160,11 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--provider", choices=("minimax", "manual"), default="minimax")
     run_parser.add_argument("--patch", help="reviewed patch for --provider manual")
     run_parser.add_argument("--model", help="MiniMax model id override")
+    run_parser.add_argument(
+        "--api-style",
+        choices=("native", "anthropic"),
+        help="native = pay-as-you-go key; anthropic = M Plan subscription key",
+    )
     run_parser.add_argument("--budget", type=int, default=3600)
     run_parser.set_defaults(func=cmd_run)
 

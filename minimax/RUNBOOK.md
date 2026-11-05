@@ -46,16 +46,23 @@ export PYTHONPATH="$PWD/src"
 
 ### 3.1 MiniMax
 
-| 变量 | 必填 | 说明 |
+MiniMax 有两类凭证，接口不同，Key 不能混用：
+
+| 凭证 | 适用场景 | 环境变量 |
 | --- | --- | --- |
-| `MINIMAX_API_KEY` | 是（真实生成补丁时） | 只从环境读取，不写入任何文件 |
-| `MINIMAX_BASE_URL` | 否 | 默认 `https://api.minimaxi.com`；国际站填 `https://api.minimax.io` |
-| `MINIMAX_MODEL` | 否 | 默认 `MiniMax-M3.1-Flash`，可改为账号可用的模型 |
+| M Plan 订阅 Key（比赛赠送的 explore） | 在 `套餐详情` 页复制，走 Anthropic 兼容接口 | `MINIMAX_API_STYLE=anthropic`、`MINIMAX_BASE_URL=https://api.minimax.cn/anthropic` |
+| 按量付费 API Key | 在 `接口密钥` 页创建，走原生接口 | `MINIMAX_API_STYLE=native`、`MINIMAX_BASE_URL=https://api.minimaxi.com` |
 
 ```bash
-export MINIMAX_API_KEY='...'
-export MINIMAX_BASE_URL='https://api.minimaxi.com'
+# 比赛赠送的 M Plan（推荐）
+export MINIMAX_API_KEY='订阅 Key'
+export MINIMAX_API_STYLE='anthropic'
+export MINIMAX_BASE_URL='https://api.minimax.cn/anthropic'
 export MINIMAX_MODEL='MiniMax-M3.1-Flash'
+
+# 按量付费 Key（国际站把 BASE_URL 换成 https://api.minimax.io）
+# export MINIMAX_API_STYLE='native'
+# export MINIMAX_BASE_URL='https://api.minimaxi.com'
 ```
 
 ### 3.2 数据库
@@ -209,6 +216,8 @@ rm -rf runs                 # 如需连同历史运行产物一起清理
 | `pylibseekdb is not installed` | 平台不是 Linux/macOS，改为 `SDD_STORE=mysql` 指向 seekdb 服务 |
 | `MINIMAX_API_KEY is not set` | 导出 Key，或改用 `--provider manual --patch ...` |
 | `MiniMax error 1004` | Key 无效；`1008` 表示余额不足 |
+| `insufficient balance (1008)` | 用了按量付费 Key 但账户无余额；比赛权益是 M Plan 订阅 Key，应设 `MINIMAX_API_STYLE=anthropic` 并在 `套餐详情` 页复制订阅 Key |
+| `invalid api key`（`api.minimax.io`） | Key 属于国内站；国内站用 `api.minimaxi.com` / `api.minimax.cn` |
 | `MiniMax returned an empty reply` | 推理模型输出被截断，增大 `max_completion_tokens` 或重试 |
 | `hunk … does not match` | 模型补丁与当前文件不一致，重新运行或人工审阅 `model-reply.md` |
 | `PowerContext is not installed` | `pip install 'powercontext[server]==1.2.0'` |
