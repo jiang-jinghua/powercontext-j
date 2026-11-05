@@ -97,7 +97,7 @@ def main() -> None:
         lines += [
             "| 项 | 值 |",
             "| --- | --- |",
-            f"| 端点 | `POST {result.get('model', '')}` / v1/text/chatcompletion_v2 |",
+            f"| 端点 | `POST /v1/text/chatcompletion_v2` |",
             f"| 模型 | `{result.get('model', '?')}` |",
             f"| 请求 ID | `{completion.get('id', '?')}` |",
             f"| 用量 | `{json.dumps(usage, ensure_ascii=False)}` |",

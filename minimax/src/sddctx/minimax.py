@@ -48,7 +48,7 @@ class Provider(Protocol):
         *,
         record_dir: Path | None = None,
         temperature: float = 0.2,
-        max_tokens: int = 8192,
+        max_tokens: int = 16384,
     ) -> Completion: ...
 
 
@@ -78,7 +78,7 @@ class MiniMaxClient:
         *,
         record_dir: Path | None = None,
         temperature: float = 0.2,
-        max_tokens: int = 8192,
+        max_tokens: int = 16384,
     ) -> Completion:
         body = {
             "model": self._model,
@@ -162,7 +162,7 @@ class ManualProvider:
         *,
         record_dir: Path | None = None,
         temperature: float = 0.2,
-        max_tokens: int = 8192,
+        max_tokens: int = 16384,
     ) -> Completion:
         if not self._patch_path.is_file():
             raise ModelError(f"patch file not found: {self._patch_path}")
