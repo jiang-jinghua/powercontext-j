@@ -11,5 +11,5 @@ def money(value: object) -> Decimal:
 
 
 def round_money(value: object) -> Decimal:
-    """Round an amount to cents with half-up rounding (SPEC-PRC-002)."""
+    """Round an amount to cents using half-up rounding."""
     return money(value).quantize(CENT, rounding=ROUND_HALF_UP)

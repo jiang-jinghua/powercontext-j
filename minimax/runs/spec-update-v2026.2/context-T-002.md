@@ -143,7 +143,7 @@ def test_save30_does_not_reduce_shipping() -> None:
 
 ## 四、历史任务状态（PowerContext）
 
-- [已完成] `20261105T023844Z-T-001` passed（2026-11-05T02:38:45Z）：passed：改动 src/order_service/money.py, src/order_service/promotion.py；目标测试 6 条，回归 13 条通过
-- [已有验证结果] `20261105T023844Z-T-001` passed（2026-11-05T02:38:45Z）：目标测试 6/6 通过；回归 13 条通过
-- [待办] `20261105T023844Z-T-001` closed（2026-11-05T02:38:45Z）：T-002 规格变更复核（门槛 200→150）
+- [已完成] `20261105T085752Z-T-001` passed（2026-11-05T08:57:58Z）：passed：改动 src/order_service/money.py, src/order_service/promotion.py；目标测试 6 条，回归 13 条通过
+- [已有验证结果] `20261105T085752Z-T-001` passed（2026-11-05T08:57:58Z）：目标测试 6/6 通过；回归 13 条通过
+- [待办] `20261105T085752Z-T-001` closed（2026-11-05T08:57:58Z）：T-002 规格变更复核（门槛 200→150）
 

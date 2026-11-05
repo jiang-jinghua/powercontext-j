@@ -1,12 +1,17 @@
 ## system
 
-你是资深 Python 工程师，只输出一个可被 `git apply -p1` 直接应用的 unified diff。
+你是资深 Python 工程师，输出需要修改的完整文件，由调用方生成 diff。
 硬性要求：
 1. 只修改生产代码，绝不修改 tests/ 下的任何文件，也不要新增测试。
 2. 严格遵守给出的规格条目；不确定时保持现有公开 API 不变。
-3. diff 必须包含 `--- a/<path>`、`+++ b/<path>` 与 `@@` hunk 头，路径相对工程根目录。
-4. 不要输出解释、Markdown 代码围栏以外的内容；不要输出 diff 以外的文本。
+3. 每个文件用以下格式输出，代码块内是替换后的完整文件，逐字保留未修改的行：
+   ### FILE: <相对路径>
+   ```python
+   <完整文件内容>
+   ```
+4. 不要输出 diff、解释或格式之外的内容；不要省略任何行（不要写 `...`）。
 5. 所有金额使用 decimal.Decimal，禁止 float；金额舍入遵循规格。
+6. 不要新建模块、不要导入不存在的模块；只能修改「完整文件」中列出的路径。
 
 ## user
 
@@ -18,11 +23,14 @@ T-001：实现 SAVE30 满减券并修正金额舍入
 门槛只按商品小计判断，不得把运费计入。优惠券在会员折扣之后应用，两者都不减免运费，
 优惠后商品金额不得小于 0。同时按 SPEC-PRC-002 把金额舍入从银行家舍入改为
 ROUND_HALF_UP。不得修改 tests/ 下的任何文件；未知券码仍抛 UnknownCouponError。
+关键约束：SAVE30 的门槛判断与 30 元抵扣都以「商品小计」为准；service.quote 中必须用
+商品小计调用 apply_coupon，不能传入会员折扣后的金额（goods - member 是错误写法）。
 
 验收条件：
 - tests/test_coupon.py 的 6 条目标测试由失败变为全部通过
 - tests/test_money.py、tests/test_pricing.py、tests/test_service.py 的 13 条回归测试保持通过
 - 修改只涉及 src/ 下的生产代码，tests/ 目录逐字节不变
+- 200 元订单（会员折扣 20、券 30、运费 12）总价必须为 162.00
 
 ## 适用规格（必须逐条满足）
 [SPEC-PRM-002] specs/promotion.md:12-15
@@ -48,7 +56,114 @@ ROUND_HALF_UP。不得修改 tests/ 下的任何文件；未知券码仍抛 Unkn
 所有金额结果按 `ROUND_HALF_UP`（四舍五入）保留到分，禁止使用 Python `Decimal` 的默认银行家舍入
 （`ROUND_HALF_EVEN`）。例如 `0.125` 元必须舍入为 `0.13` 元，`1.005` 元必须舍入为 `1.01` 元。
 
-## 现有代码
+## 需要修改的完整文件（逐字匹配，以此为准）
+FILE src/order_service/money.py
+```python
+"""Exact money helpers for the order service."""
+
+from decimal import ROUND_HALF_EVEN, Decimal
+
+CENT = Decimal("0.01")
+
+
+def money(value: object) -> Decimal:
+    """Parse a value into an exact Decimal amount without rounding it."""
+    return Decimal(str(value))
+
+
+def round_money(value: object) -> Decimal:
+    """Round an amount to cents using the platform default rounding mode."""
+    return money(value).quantize(CENT, rounding=ROUND_HALF_EVEN)
+```
+
+FILE src/order_service/promotion.py
+```python
+"""Coupon registry and coupon application."""
+
+from decimal import Decimal
+
+from .money import money
+
+
+class UnknownCouponError(ValueError):
+    """Raised when a coupon code is not registered."""
+
+
+class CouponNotApplicableError(ValueError):
+    """Raised when a known coupon does not apply to this order."""
+
+
+COUPONS: dict[str, object] = {}
+
+
+def resolve_coupon(code: str) -> object:
+    """Look up a coupon rule by code."""
+    try:
+        return COUPONS[code]
+    except KeyError as exc:
+        raise UnknownCouponError(f"unknown coupon: {code}") from exc
+
+
+def apply_coupon(amount: Decimal, code: str) -> Decimal:
+    """Return the discount for ``code`` on the goods amount."""
+    rule = resolve_coupon(code)
+    return rule.apply(amount)
+
+
+def no_discount() -> Decimal:
+    """A convenience zero used by callers that do not apply a coupon."""
+    return money("0")
+```
+
+FILE src/order_service/service.py
+```python
+"""Quote a shopping cart: goods, member discount, coupon and shipping."""
+
+from dataclasses import dataclass
+from decimal import Decimal
+
+from .money import money, round_money
+from .pricing import LineItem, member_discount, shipping_fee, subtotal
+from .promotion import apply_coupon
+
+
+@dataclass(frozen=True)
+class Quote:
+    """The priced order as shown to the customer."""
+
+    subtotal: Decimal
+    member_discount: Decimal
+    coupon_discount: Decimal
+    shipping: Decimal
+    total: Decimal
+
+
+def quote(items: object, coupon_code: str | None = None) -> Quote:
+    """Price ``items`` with the optional coupon and the member discount."""
+    lines = tuple(items)
+    if not lines:
+        raise ValueError("order requires at least one item")
+
+    goods = subtotal(lines)
+    member = member_discount(goods)
+    coupon = money("0")
+    if coupon_code is not None:
+        coupon = apply_coupon(goods, coupon_code)
+
+    discounted_goods = goods - member - coupon
+    if discounted_goods < 0:
+        discounted_goods = money("0")
+    shipping = shipping_fee(goods)
+    return Quote(
+        subtotal=goods,
+        member_discount=member,
+        coupon_discount=coupon,
+        shipping=shipping,
+        total=round_money(discounted_goods + shipping),
+    )
+```
+
+## 现有代码片段（辅助定位）
 FILE src/order_service/service.py (22-44)
 def quote(items: object, coupon_code: str | None = None) -> Quote:
     """Price ``items`` with the optional coupon and the member discount."""
@@ -86,16 +201,16 @@ def round_money(value: object) -> Decimal:
     return money(value).quantize(CENT, rounding=ROUND_HALF_EVEN)
 
 ## 验证测试（不得修改）
+[tests/test_coupon.py::test_save30_is_rejected_below_threshold] tests/test_coupon.py:24-26
+def test_save30_is_rejected_below_threshold() -> None:
+    with pytest.raises(CouponNotApplicableError):
+        quote([item("199.99")], coupon_code="SAVE30")
+
 [tests/test_coupon.py::test_save30_threshold_excludes_shipping] tests/test_coupon.py:29-32
 def test_save30_threshold_excludes_shipping() -> None:
     # 195 + 12 shipping = 207; the threshold must still judge on 195 goods only.
     with pytest.raises(CouponNotApplicableError):
         quote([item("195.00")], coupon_code="SAVE30")
-
-[tests/test_coupon.py::test_save30_is_rejected_below_threshold] tests/test_coupon.py:24-26
-def test_save30_is_rejected_below_threshold() -> None:
-    with pytest.raises(CouponNotApplicableError):
-        quote([item("199.99")], coupon_code="SAVE30")
 
 [tests/test_coupon.py::test_save30_does_not_reduce_shipping] tests/test_coupon.py:42-44
 def test_save30_does_not_reduce_shipping() -> None:
@@ -124,4 +239,4 @@ def test_money_rounding_is_half_up() -> None:
 （无历史记录）
 
 ## 输出
-只输出 unified diff，路径相对工程根目录。修改后用 `python -m pytest -q` 应全部通过。
+按 `### FILE: <path>` 输出需要修改的完整文件，每个文件一个 ```python 代码块；不要输出 diff，不要省略任何行。修改后用 `python -m pytest -q` 应全部通过。

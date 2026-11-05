@@ -16,7 +16,7 @@ from .config import Settings
 from .context import build_prompt, pack_json, render_markdown
 from .errors import PatchError
 from .minimax import Completion, Provider
-from .patch import FileChange, apply_patch, extract_diff, touched_paths
+from .patch import FileChange, apply_patch, diff_from_files, extract_diff, touched_paths
 from .retrieve import ContextPack, Task, retrieve
 from .state import StateStore
 from .store import CorpusStore
@@ -63,6 +63,7 @@ class RunResult:
     changes: list[FileChange]
     before: TestRun
     after: TestRun
+    output_mode: str = "files"
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -71,6 +72,7 @@ class RunResult:
             "verification": self.verification,
             "provider": self.completion.provider,
             "api_style": self.completion.api_style,
+            "output_mode": self.output_mode,
             "model": self.completion.model,
             "context": {
                 "spec": [hit.symbol for hit in self.context.specs],
@@ -178,6 +180,8 @@ def run_task(
     store: CorpusStore,
     tasks_dir: Path,
     budget: int = 3600,
+    max_tokens: int = 16384,
+    output_mode: str = "files",
 ) -> RunResult:
     """Execute one task end to end and persist its artifacts and state."""
     task = Task.load(tasks_dir / f"{task_id}.yaml")
@@ -194,18 +198,22 @@ def run_task(
     state_store = StateStore(settings.state_db, settings.scheduler_db)
     records = state_store.recall(task.project)
     pack = retrieve(store, task, state=_state_brief(records), budget=budget)
+    full_files = store.file_texts(task.project, task.paths)
     (run_dir / "context.json").write_text(pack_json(pack), encoding="utf-8")
     (run_dir / "context.md").write_text(render_markdown(pack), encoding="utf-8")
 
-    messages = build_prompt(pack)
+    messages = build_prompt(pack, full_files=full_files, output_mode=output_mode)
     (run_dir / "prompt.md").write_text(
         "\n\n".join(f"## {message['role']}\n\n{message['content']}" for message in messages),
         encoding="utf-8",
     )
-    completion = provider.complete(messages, record_dir=run_dir / "model")
+    completion = provider.complete(messages, record_dir=run_dir / "model", max_tokens=max_tokens)
     (run_dir / "model-reply.md").write_text(completion.content, encoding="utf-8")
 
-    diff_text = extract_diff(completion.content)
+    if output_mode == "files":
+        diff_text = diff_from_files(completion.content, workspace)
+    else:
+        diff_text = extract_diff(completion.content)
     (run_dir / "diff.patch").write_text(diff_text, encoding="utf-8")
     paths = touched_paths(diff_text)
     for relative in paths:
@@ -317,6 +325,7 @@ def run_task(
         changes=changes,
         before=before,
         after=after,
+        output_mode=output_mode,
     )
     (run_dir / "result.json").write_text(
         json.dumps(result.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8"

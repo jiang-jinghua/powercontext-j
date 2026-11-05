@@ -1,6 +1,6 @@
 ============================= test session starts ==============================
 platform linux -- Python 3.12.3, pytest-9.2.0, pluggy-1.7.0 -- /home/jjh/minimax-sdd-work/.venv-pc12/bin/python
-rootdir: /home/jjh/minimax-sdd-work/minimax/runs/20261105T023844Z-T-001/workspace
+rootdir: /home/jjh/minimax-sdd-work/minimax/runs/20261105T085752Z-T-001/workspace
 configfile: pytest.ini
 testpaths: tests
 plugins: anyio-4.16.0, platformdirs-4.14.5

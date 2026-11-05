@@ -5,10 +5,12 @@
 门槛只按商品小计判断，不得把运费计入。优惠券在会员折扣之后应用，两者都不减免运费，
 优惠后商品金额不得小于 0。同时按 SPEC-PRC-002 把金额舍入从银行家舍入改为
 ROUND_HALF_UP。不得修改 tests/ 下的任何文件；未知券码仍抛 UnknownCouponError。
+关键约束：SAVE30 的门槛判断与 30 元抵扣都以「商品小计」为准；service.quote 中必须用
+商品小计调用 apply_coupon，不能传入会员折扣后的金额（goods - member 是错误写法）。
 
-- 检索词：`实现 SAVE30 满减券并修正金额舍入 按照 specs promotion SPEC PRM 为券码 实现满减 商品小计大于或等于 元时减免 不足 元时抛出 CouponNotApplicableError 门槛只按商品小计判断 不得把运费计入 优惠券在会员折扣之后应用 两者都不减免运费 优惠后商品金额不得小于 同时按 PRC 把金额舍入从银行家舍入改为 ROUND_HALF_UP 不得修改 tests 下的任何文件 未知券码仍抛 UnknownCouponError test_coupon 条目标测试由失败变为全部通过 test_money test_pricing test_service 条回归测试保持通过 修改只涉及 src 下的生产代码 目录逐字节不变 apply_coupon quote round_money service money test applies at threshold`
+- 检索词：`实现 SAVE30 满减券并修正金额舍入 按照 specs promotion SPEC PRM 为券码 实现满减 商品小计大于或等于 元时减免 不足 元时抛出 CouponNotApplicableError 门槛只按商品小计判断 不得把运费计入 优惠券在会员折扣之后应用 两者都不减免运费 优惠后商品金额不得小于 同时按 PRC 把金额舍入从银行家舍入改为 ROUND_HALF_UP 不得修改 tests 下的任何文件 未知券码仍抛 UnknownCouponError 关键约束 的门槛判断与 元抵扣都以 商品小计 为准 service quote 中必须用 商品小计调用 apply_coupon 不能传入会员折扣后的金额 goods member 是错误写法 test_coupon 条目标测试由失败变为全部通过 test_money test_pricing test_service`
 - 预算：3600 tokens，实际 835 tokens
-- 候选：46 条（来自 seekdb 全文检索 + 精确来源匹配）
+- 候选：40 条（来自 seekdb 全文检索 + 精确来源匹配）
 
 ## 一、适用规格
 
@@ -110,6 +112,16 @@ def round_money(value: object) -> Decimal:
 
 ## 三、验证用测试
 
+### tests/test_coupon.py::test_save30_is_rejected_below_threshold
+
+来源：`tests/test_coupon.py:24-26`
+
+```
+def test_save30_is_rejected_below_threshold() -> None:
+    with pytest.raises(CouponNotApplicableError):
+        quote([item("199.99")], coupon_code="SAVE30")
+```
+
 ### tests/test_coupon.py::test_save30_threshold_excludes_shipping
 
 来源：`tests/test_coupon.py:29-32`
@@ -119,16 +131,6 @@ def test_save30_threshold_excludes_shipping() -> None:
     # 195 + 12 shipping = 207; the threshold must still judge on 195 goods only.
     with pytest.raises(CouponNotApplicableError):
         quote([item("195.00")], coupon_code="SAVE30")
-```
-
-### tests/test_coupon.py::test_save30_is_rejected_below_threshold
-
-来源：`tests/test_coupon.py:24-26`
-
-```
-def test_save30_is_rejected_below_threshold() -> None:
-    with pytest.raises(CouponNotApplicableError):
-        quote([item("199.99")], coupon_code="SAVE30")
 ```
 
 ### tests/test_coupon.py::test_save30_does_not_reduce_shipping

@@ -13,8 +13,9 @@
 
 ## 复核要点
 
-> 交付说明：仓库内 `runs/` 的样例运行使用 `manual` 提供方（无 Key 环境下可复核链路）；
-> 评审用 `--provider minimax` 重跑时，真实的 MiniMax 请求/响应会写入新的 `runs/<run_id>/model/`。
+> 交付说明：仓库内 `runs/20261105T085752Z-T-001/` 是一次真实的 MiniMax 调用（M3.1-Flash，
+> Anthropic 兼容端点），请求/响应、补丁、测试日志与技术记录均已归档；评审重跑
+> `--provider minimax` 会生成新的运行目录。
 
 - **测试集未改**：补丁应用器拒绝任何 `tests/` 路径；`runs/*/snapshots/` 只保存 `src/` 下被改文件；
   `tests_untouched` 为 `true`。

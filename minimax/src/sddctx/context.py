@@ -56,22 +56,46 @@ def render_markdown(pack: ContextPack) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-_SYSTEM_PROMPT = """你是资深 Python 工程师，只输出一个可被 `git apply -p1` 直接应用的 unified diff。
+_SYSTEM_DIFF = """你是资深 Python 工程师，只输出一个可被 `git apply -p1` 直接应用的 unified diff。
 硬性要求：
 1. 只修改生产代码，绝不修改 tests/ 下的任何文件，也不要新增测试。
 2. 严格遵守给出的规格条目；不确定时保持现有公开 API 不变。
 3. diff 必须包含 `--- a/<path>`、`+++ b/<path>` 与 `@@` hunk 头，路径相对工程根目录。
 4. 只输出 diff；可以用 ```diff 围栏包裹，围栏外不要写任何解释。
-5. 所有金额使用 decimal.Decimal，禁止 float；金额舍入遵循规格。"""
+5. 所有金额使用 decimal.Decimal，禁止 float；金额舍入遵循规格。
+6. 以「完整文件」为唯一准据：不要新建模块、不要导入不存在的模块，hunk 的上下文必须逐字匹配现有文件。"""
+
+_SYSTEM_FILES = """你是资深 Python 工程师，输出需要修改的完整文件，由调用方生成 diff。
+硬性要求：
+1. 只修改生产代码，绝不修改 tests/ 下的任何文件，也不要新增测试。
+2. 严格遵守给出的规格条目；不确定时保持现有公开 API 不变。
+3. 每个文件用以下格式输出，代码块内是替换后的完整文件，逐字保留未修改的行：
+   ### FILE: <相对路径>
+   ```python
+   <完整文件内容>
+   ```
+4. 不要输出 diff、解释或格式之外的内容；不要省略任何行（不要写 `...`）。
+5. 所有金额使用 decimal.Decimal，禁止 float；金额舍入遵循规格。
+6. 不要新建模块、不要导入不存在的模块；只能修改「完整文件」中列出的路径。"""
 
 
-def build_prompt(pack: ContextPack, *, test_command: str = "python -m pytest -q") -> list[dict[str, str]]:
+def build_prompt(
+    pack: ContextPack,
+    *,
+    test_command: str = "python -m pytest -q",
+    full_files: dict[str, str] | None = None,
+    output_mode: str = "files",
+) -> list[dict[str, str]]:
     """Chat messages for MiniMax. Context first, then the task and output contract."""
     spec_text = "\n\n".join(
         f"[{hit.symbol}] {hit.source}\n{hit.text}" for hit in pack.specs
     )
     code_text = "\n\n".join(
         f"FILE {hit.path} ({hit.start_line}-{hit.end_line})\n{hit.text}" for hit in pack.code
+    )
+    full_text = "\n\n".join(
+        f"FILE {path}\n```python\n{text.rstrip()}\n```"
+        for path, text in sorted((full_files or {}).items())
     )
     test_text = "\n\n".join(f"[{hit.symbol}] {hit.source}\n{hit.text}" for hit in pack.tests)
     state_text = (
@@ -82,6 +106,13 @@ def build_prompt(pack: ContextPack, *, test_command: str = "python -m pytest -q"
         )
         or "（无历史记录）"
     )
+    if output_mode == "files":
+        output_contract = (
+            "按 `### FILE: <path>` 输出需要修改的完整文件，每个文件一个 ```python 代码块；"
+            "不要输出 diff，不要省略任何行。"
+        )
+    else:
+        output_contract = "只输出 unified diff，路径相对工程根目录。"
     user = f"""## 任务
 {pack.task.id}：{pack.task.title}
 
@@ -93,7 +124,10 @@ def build_prompt(pack: ContextPack, *, test_command: str = "python -m pytest -q"
 ## 适用规格（必须逐条满足）
 {spec_text}
 
-## 现有代码
+## 需要修改的完整文件（逐字匹配，以此为准）
+{full_text or "（未提供）"}
+
+## 现有代码片段（辅助定位）
 {code_text}
 
 ## 验证测试（不得修改）
@@ -103,9 +137,10 @@ def build_prompt(pack: ContextPack, *, test_command: str = "python -m pytest -q"
 {state_text}
 
 ## 输出
-只输出 unified diff，路径相对工程根目录。修改后用 `{test_command}` 应全部通过。"""
+{output_contract}修改后用 `{test_command}` 应全部通过。"""
+    system = _SYSTEM_FILES if output_mode == "files" else _SYSTEM_DIFF
     return [
-        {"role": "system", "content": _SYSTEM_PROMPT},
+        {"role": "system", "content": system},
         {"role": "user", "content": user},
     ]
 

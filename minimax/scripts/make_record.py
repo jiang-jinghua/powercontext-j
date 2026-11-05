@@ -94,10 +94,11 @@ def main() -> None:
     else:
         completion = load(run / "model" / "minimax-response-01.json", {})
         usage = completion.get("usage", {})
+        endpoint = "/v1/messages" if result.get("api_style") == "anthropic" else "/v1/text/chatcompletion_v2"
         lines += [
             "| 项 | 值 |",
             "| --- | --- |",
-            f"| 端点 | `POST /v1/text/chatcompletion_v2` |",
+            f"| 端点 | `POST {endpoint}` |",
             f"| 模型 | `{result.get('model', '?')}` |",
             f"| 请求 ID | `{completion.get('id', '?')}` |",
             f"| 用量 | `{json.dumps(usage, ensure_ascii=False)}` |",

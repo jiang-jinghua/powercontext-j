@@ -1,5 +1,5 @@
 {
-  "run_id": "20261105T023844Z-T-001",
+  "run_id": "20261105T085752Z-T-001",
   "status": "passed",
   "verification": {
     "target_tests": [
@@ -49,8 +49,10 @@
     "target_tests_in_context": [],
     "ok": true
   },
-  "provider": "manual",
-  "model": "manual-patch",
+  "provider": "minimax",
+  "api_style": "anthropic",
+  "output_mode": "files",
+  "model": "MiniMax-M3.1-Flash",
   "context": {
     "spec": [
       "SPEC-PRM-002",
@@ -64,15 +66,15 @@
       "order_service.money.round_money"
     ],
     "tests": [
-      "tests/test_coupon.py::test_save30_threshold_excludes_shipping",
       "tests/test_coupon.py::test_save30_is_rejected_below_threshold",
+      "tests/test_coupon.py::test_save30_threshold_excludes_shipping",
       "tests/test_coupon.py::test_save30_does_not_reduce_shipping",
       "tests/test_coupon.py::test_save30_applies_at_threshold",
       "tests/test_coupon.py::test_save30_stacks_after_member_discount",
       "tests/test_coupon.py::test_money_rounding_is_half_up"
     ],
     "tokens": 835,
-    "db_rows": 46
+    "db_rows": 40
   },
   "changes": [
     {
@@ -83,14 +85,14 @@
     },
     {
       "path": "src/order_service/promotion.py",
-      "added": 21,
-      "removed": 2,
+      "added": 18,
+      "removed": 1,
       "created": false
     }
   ],
   "before": {
     "exit_code": 1,
-    "duration_ms": 155,
+    "duration_ms": 152,
     "passed": 13,
     "failed": [
       "tests/test_coupon.py::test_money_rounding_is_half_up",
@@ -124,7 +126,7 @@
   },
   "after": {
     "exit_code": 0,
-    "duration_ms": 140,
+    "duration_ms": 148,
     "passed": 19,
     "failed": [],
     "outcomes": {

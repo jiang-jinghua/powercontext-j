@@ -34,9 +34,25 @@ def test_markdown_cites_every_source() -> None:
 def test_prompt_carries_specs_and_output_contract() -> None:
     messages = build_prompt(pack())
     system, user = messages[0]["content"], messages[1]["content"]
-    assert "unified diff" in system
+    assert "### FILE:" in system
     assert "满 200 减 30" in user
     assert "不得修改" in system or "不得修改" in user
+
+
+def test_diff_mode_uses_the_diff_contract() -> None:
+    messages = build_prompt(pack(), output_mode="diff")
+    assert "unified diff" in messages[0]["content"]
+
+
+def test_prompt_includes_full_files_for_edited_paths() -> None:
+    messages = build_prompt(
+        pack(),
+        full_files={"src/order_service/money.py": "from decimal import ROUND_HALF_EVEN\n"},
+    )
+    user = messages[1]["content"]
+    assert "完整文件" in user
+    assert "src/order_service/money.py" in user
+    assert "ROUND_HALF_EVEN" in user
 
 
 def test_pack_json_is_valid_json() -> None:

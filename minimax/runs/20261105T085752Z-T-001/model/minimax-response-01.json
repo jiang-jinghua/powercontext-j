@@ -1,0 +1,31 @@
+{
+  "id": "073b78117391b88b6891ef8cf496c7bf",
+  "type": "message",
+  "role": "assistant",
+  "model": "MiniMax-M3.1-Flash",
+  "content": [
+    {
+      "thinking": "We need craft three files? money, promotion, service likely promotion needs rule implementation. Need infer pricing member discount perhaps 10%. Implement coupon class. apply_coupon returns discount. Save30 threshold amount >=200. Coupon discount likely Decimal 30. Need ensure amount goods subtotal. Rule can inner class, COUPONS typed object. no new modules. service already apply_coupon(goods) correct, but discounted goods goods-member-coupon, coupon threshold based goods. 200 member20 coupon30 =>150 +12=162. Good.\n\nNeed output exact format only. promotion implement. Use Decimal comparisons, money. Could class Save30Rule. COUPONS={\"SAVE30\": Save30Rule()}. apply rule. Need perhaps tests expect COUPONS? Fine.\n\nMoney import ROUND_HALF_UP and doc.",
+      "signature": "e92a26333be83a8727ed5703e3bc7bc0b564ca0770d41bf525c74bc66b1c5929",
+      "type": "thinking"
+    },
+    {
+      "text": "### FILE: src/order_service/money.py\n```python\n\"\"\"Exact money helpers for the order service.\"\"\"\n\nfrom decimal import ROUND_HALF_UP, Decimal\n\nCENT = Decimal(\"0.01\")\n\n\ndef money(value: object) -> Decimal:\n    \"\"\"Parse a value into an exact Decimal amount without rounding it.\"\"\"\n    return Decimal(str(value))\n\n\ndef round_money(value: object) -> Decimal:\n    \"\"\"Round an amount to cents using half-up rounding.\"\"\"\n    return money(value).quantize(CENT, rounding=ROUND_HALF_UP)\n```\n\n### FILE: src/order_service/promotion.py\n```python\n\"\"\"Coupon registry and coupon application.\"\"\"\n\nfrom decimal import Decimal\n\nfrom .money import money\n\n\nclass UnknownCouponError(ValueError):\n    \"\"\"Raised when a coupon code is not registered.\"\"\"\n\n\nclass CouponNotApplicableError(ValueError):\n    \"\"\"Raised when a known coupon does not apply to this order.\"\"\"\n\n\nclass Save30Rule:\n    \"\"\"Apply the SAVE30 coupon to a qualifying goods amount.\"\"\"\n\n    threshold = money(\"200\")\n    discount = money(\"30\")\n\n    def apply(self, amount: Decimal) -> Decimal:\n        \"\"\"Return the SAVE30 discount, or reject a below-threshold amount.\"\"\"\n        if amount < self.threshold:\n            raise CouponNotApplicableError(\n                \"SAVE30 requires a goods subtotal of at least 200.00\"\n            )\n        return self.discount\n\n\nCOUPONS: dict[str, object] = {\n    \"SAVE30\": Save30Rule(),\n}\n\n\ndef resolve_coupon(code: str) -> object:\n    \"\"\"Look up a coupon rule by code.\"\"\"\n    try:\n        return COUPONS[code]\n    except KeyError as exc:\n        raise UnknownCouponError(f\"unknown coupon: {code}\") from exc\n\n\ndef apply_coupon(amount: Decimal, code: str) -> Decimal:\n    \"\"\"Return the discount for ``code`` on the goods amount.\"\"\"\n    rule = resolve_coupon(code)\n    return rule.apply(amount)\n\n\ndef no_discount() -> Decimal:\n    \"\"\"A convenience zero used by callers that do not apply a coupon.\"\"\"\n    return money(\"0\")\n```\n\n### FILE: src/order_service/service.py\n```python\n\"\"\"Quote a shopping cart: goods, member discount, coupon and shipping.\"\"\"\n\nfrom dataclasses import dataclass\nfrom decimal import Decimal\n\nfrom .money import money, round_money\nfrom .pricing import LineItem, member_discount, shipping_fee, subtotal\nfrom .promotion import apply_coupon\n\n\n@dataclass(frozen=True)\nclass Quote:\n    \"\"\"The priced order as shown to the customer.\"\"\"\n\n    subtotal: Decimal\n    member_discount: Decimal\n    coupon_discount: Decimal\n    shipping: Decimal\n    total: Decimal\n\n\ndef quote(items: object, coupon_code: str | None = None) -> Quote:\n    \"\"\"Price ``items`` with the optional coupon and the member discount.\"\"\"\n    lines = tuple(items)\n    if not lines:\n        raise ValueError(\"order requires at least one item\")\n\n    goods = subtotal(lines)\n    member = member_discount(goods)\n    coupon = money(\"0\")\n    if coupon_code is not None:\n        coupon = apply_coupon(goods, coupon_code)\n\n    discounted_goods = goods - member - coupon\n    if discounted_goods < 0:\n        discounted_goods = money(\"0\")\n    shipping = shipping_fee(goods)\n    return Quote(\n        subtotal=goods,\n        member_discount=member,\n        coupon_discount=coupon,\n        shipping=shipping,\n        total=round_money(discounted_goods + shipping),\n    )\n```",
+      "type": "text"
+    }
+  ],
+  "usage": {
+    "input_tokens": 175,
+    "output_tokens": 915,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 2304,
+    "output_tokens_details": {
+      "thinking_tokens": 166
+    }
+  },
+  "stop_reason": "end_turn",
+  "base_resp": {
+    "status_code": 0,
+    "status_msg": ""
+  }
+}

@@ -65,6 +65,15 @@ export MINIMAX_MODEL='MiniMax-M3.1-Flash'
 # export MINIMAX_BASE_URL='https://api.minimaxi.com'
 ```
 
+| 变量 | 默认 | 说明 |
+| --- | --- | --- |
+| `MINIMAX_API_STYLE` | `native` | `anthropic` 使用 M Plan 订阅 Key；`native` 使用按量 Key |
+| `MINIMAX_BASE_URL` | 随 style | `https://api.minimax.cn/anthropic` 或 `https://api.minimaxi.com` |
+| `MINIMAX_MODEL` | `MiniMax-M3.1-Flash` | 推理模型思考过长时可换 `MiniMax-Text-01` |
+| `MINIMAX_EFFORT` | `low`（anthropic） | M3 思考强度；不设时可能把输出预算全用在 thinking 上 |
+| `MINIMAX_MAX_TOKENS` | `16384` | 输出上限 |
+| `MINIMAX_OUTPUT` | `files` | `files` 让模型返回完整文件（更稳）；`diff` 让它直接返回 unified diff |
+
 ### 3.2 数据库
 
 默认使用嵌入式 seekdb，数据落在 `./.sdd/seekdb/`，无需账号。若改用服务端：
@@ -227,5 +236,5 @@ rm -rf runs                 # 如需连同历史运行产物一起清理
 1. 嵌入式 seekdb 仅支持 Linux/macOS；Windows 走 MySQL 服务端模式。
 2. 检索以 seekdb 全文索引 + 精确来源匹配为主；MiniMax embedding 通道未纳入默认路径。
 3. MiniMax 输出按 unified diff 解析；若模型返回说明文字，`extract_diff` 会取第一个合法 diff。
-4. `runs/` 中的样例运行使用 `manual` provider 或真实 MiniMax，取决于交付时的记录（见
-   `docs/technical-record.md`）；评审重新执行 `--provider minimax` 会生成新的记录与补丁。
+4. `runs/` 中的样例是真实 MiniMax 运行（M3.1-Flash，Anthropic 兼容端点）；评审重跑
+   `--provider minimax` 会生成新的记录与补丁，模型不保证逐字复现同一补丁。

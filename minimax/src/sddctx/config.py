@@ -23,6 +23,9 @@ class Settings:
     minimax_base_url: str
     minimax_model: str
     minimax_api_style: str
+    minimax_max_tokens: int
+    minimax_effort: str | None
+    minimax_output: str
     minimax_embedding_model: str | None
 
     @property
@@ -68,5 +71,8 @@ def load_settings(
         minimax_base_url=os.environ.get("MINIMAX_BASE_URL", default_base).rstrip("/"),
         minimax_model=os.environ.get("MINIMAX_MODEL", "MiniMax-M3.1-Flash"),
         minimax_api_style=style,
+        minimax_max_tokens=int(os.environ.get("MINIMAX_MAX_TOKENS", "16384")),
+        minimax_effort=os.environ.get("MINIMAX_EFFORT") or ("low" if style == "anthropic" else None),
+        minimax_output=os.environ.get("MINIMAX_OUTPUT", "files"),
         minimax_embedding_model=os.environ.get("MINIMAX_EMBEDDING_MODEL") or None,
     )

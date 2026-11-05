@@ -1,7 +1,14 @@
-"""Parse and apply unified diffs without shelling out to ``git`` or ``patch``."""
+"""Parse model output into an applicable unified diff without shelling out to ``git``.
+
+Models are much more reliable at returning whole files than at hand-computing
+``@@`` hunk offsets, so the default path converts ``### FILE:`` sections into a
+diff locally; the strict diff parser remains available for models that emit one.
+"""
 
 from __future__ import annotations
 
+import ast
+import difflib
 import re
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -10,6 +17,7 @@ from .errors import PatchError
 
 _HUNK_RE = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
 _FENCE_RE = re.compile(r"^```(?:diff|patch)?\s*$")
+_FILE_HEADER_RE = re.compile(r"^#{2,4}\s*FILE:\s*(?P<path>[^\s`]+)\s*$", re.MULTILINE)
 
 
 @dataclass(frozen=True)
@@ -115,6 +123,71 @@ def _parse(diff_text: str) -> list[tuple[str, str, list[_Hunk]]]:
 
 def touched_paths(diff_text: str) -> list[str]:
     return [new for _, new, _ in _parse(extract_diff(diff_text)) if new != "/dev/null"]
+
+
+def extract_file_sections(reply: str) -> dict[str, str]:
+    """Parse ``### FILE: path`` sections with one fenced block each."""
+    matches = list(_FILE_HEADER_RE.finditer(reply))
+    sections: dict[str, str] = {}
+    for index, match in enumerate(matches):
+        path = match.group("path").strip()
+        start = match.end()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(reply)
+        block = reply[start:end]
+        fence = re.search(r"```[^\n]*\n(?P<body>.*?)```", block, re.DOTALL)
+        body = fence.group("body") if fence else block.strip("\n")
+        body = body.rstrip("\n") + "\n"
+        if not body.strip():
+            raise PatchError(f"empty file section for {path}")
+        sections[path] = body
+    return sections
+
+
+def diff_from_files(
+    reply: str,
+    workspace: Path,
+    *,
+    allowed_prefixes: tuple[str, ...] = ("src/",),
+    forbidden_prefixes: tuple[str, ...] = ("tests/",),
+) -> str:
+    """Turn full-file sections into a unified diff against the workspace."""
+    sections = extract_file_sections(reply)
+    if not sections:
+        raise PatchError("model reply has no `### FILE: <path>` sections")
+    patches: list[str] = []
+    for path, new_text in sections.items():
+        pure = PurePosixPath(path)
+        if pure.is_absolute() or ".." in pure.parts:
+            raise PatchError(f"file section escapes the workspace: {path}")
+        if any(path.startswith(prefix) for prefix in forbidden_prefixes):
+            raise PatchError(f"file section touches a protected path: {path}")
+        if not any(path.startswith(prefix) for prefix in allowed_prefixes):
+            raise PatchError(f"file section is outside the allowed area: {path}")
+        source = workspace / path
+        if not source.is_file():
+            raise PatchError(f"file section references a missing file: {path}")
+        old_text = source.read_text(encoding="utf-8")
+        if old_text == new_text:
+            continue
+        if path.endswith(".py"):
+            try:
+                ast.parse(new_text)
+            except SyntaxError as exc:
+                raise PatchError(f"file section for {path} is not valid Python: {exc}") from exc
+        patches.append(
+            "".join(
+                difflib.unified_diff(
+                    old_text.splitlines(keepends=True),
+                    new_text.splitlines(keepends=True),
+                    fromfile=f"a/{path}",
+                    tofile=f"b/{path}",
+                    n=3,
+                )
+            )
+        )
+    if not patches:
+        raise PatchError("model reply did not change any file")
+    return "".join(patches)
 
 
 def apply_patch(

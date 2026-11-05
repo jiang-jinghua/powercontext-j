@@ -239,8 +239,10 @@ class AnthropicClient(_HttpClient):
         base_url: str = "https://api.minimax.cn/anthropic",
         model: str = "MiniMax-M3.1-Flash",
         timeout_seconds: float = 180.0,
+        effort: str | None = None,
     ) -> None:
         super().__init__(api_key=api_key, base_url=base_url, model=model, timeout_seconds=timeout_seconds)
+        self._effort = effort
 
     def _endpoint(self) -> str:
         return f"{self._base_url}/v1/messages"
@@ -267,6 +269,8 @@ class AnthropicClient(_HttpClient):
         }
         if system:
             body["system"] = system
+        if self._effort:
+            body["output_config"] = {"effort": self._effort}
         return body
 
     def _business_error(self, payload: dict) -> tuple[int, str] | None:
@@ -289,11 +293,13 @@ class AnthropicClient(_HttpClient):
         )
 
 
-def build_client(*, api_key: str, base_url: str, model: str, api_style: str) -> _HttpClient:
+def build_client(
+    *, api_key: str, base_url: str, model: str, api_style: str, effort: str | None = None
+) -> _HttpClient:
     """Select the endpoint that matches the credential type."""
     style = api_style.lower()
     if style == "anthropic":
-        return AnthropicClient(api_key=api_key, base_url=base_url, model=model)
+        return AnthropicClient(api_key=api_key, base_url=base_url, model=model, effort=effort)
     return MiniMaxClient(api_key=api_key, base_url=base_url, model=model)
 
 

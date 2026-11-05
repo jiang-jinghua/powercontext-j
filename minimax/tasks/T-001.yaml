@@ -7,6 +7,8 @@ statement: |
   门槛只按商品小计判断，不得把运费计入。优惠券在会员折扣之后应用，两者都不减免运费，
   优惠后商品金额不得小于 0。同时按 SPEC-PRC-002 把金额舍入从银行家舍入改为
   ROUND_HALF_UP。不得修改 tests/ 下的任何文件；未知券码仍抛 UnknownCouponError。
+  关键约束：SAVE30 的门槛判断与 30 元抵扣都以「商品小计」为准；service.quote 中必须用
+  商品小计调用 apply_coupon，不能传入会员折扣后的金额（goods - member 是错误写法）。
 spec_refs:
   - SPEC-PRM-002
   - SPEC-PRM-003
@@ -35,3 +37,4 @@ acceptance:
   - tests/test_coupon.py 的 6 条目标测试由失败变为全部通过
   - tests/test_money.py、tests/test_pricing.py、tests/test_service.py 的 13 条回归测试保持通过
   - 修改只涉及 src/ 下的生产代码，tests/ 目录逐字节不变
+  - 200 元订单（会员折扣 20、券 30、运费 12）总价必须为 162.00

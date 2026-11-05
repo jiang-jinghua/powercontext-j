@@ -75,6 +75,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             base_url=settings.minimax_base_url,
             model=args.model or settings.minimax_model,
             api_style=args.api_style or settings.minimax_api_style,
+            effort=settings.minimax_effort,
         )
     with CorpusStore.open(db_path=settings.db_path) as store:
         store.ensure_schema()
@@ -85,6 +86,8 @@ def cmd_run(args: argparse.Namespace) -> int:
             store=store,
             tasks_dir=settings.home / "tasks",
             budget=args.budget,
+            max_tokens=settings.minimax_max_tokens,
+            output_mode=args.output_mode or settings.minimax_output,
         )
     print(
         json.dumps(
@@ -164,6 +167,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--api-style",
         choices=("native", "anthropic"),
         help="native = pay-as-you-go key; anthropic = M Plan subscription key",
+    )
+    run_parser.add_argument(
+        "--output-mode",
+        choices=("files", "diff"),
+        help="files = model returns whole files (default); diff = model returns a unified diff",
     )
     run_parser.add_argument("--budget", type=int, default=3600)
     run_parser.set_defaults(func=cmd_run)

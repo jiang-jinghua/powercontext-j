@@ -50,6 +50,14 @@ _SCHEMA = (
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS sdd_file (
+        doc_id VARCHAR(64) NOT NULL PRIMARY KEY,
+        project VARCHAR(64) NOT NULL,
+        path VARCHAR(512) NOT NULL,
+        text LONGTEXT NOT NULL
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS sdd_import (
         import_id VARCHAR(64) NOT NULL PRIMARY KEY,
         project VARCHAR(64) NOT NULL,
@@ -188,7 +196,7 @@ class CorpusStore:
         self._connection.commit()
 
     def reset(self) -> None:
-        for table in ("sdd_chunk", "sdd_document", "sdd_import"):
+        for table in ("sdd_chunk", "sdd_file", "sdd_document", "sdd_import"):
             self._run(f"DROP TABLE IF EXISTS {table}")
         self._connection.commit()
         self.ensure_schema()
@@ -198,6 +206,7 @@ class CorpusStore:
         """Replace every row of one project in a single transaction."""
         project = quote(corpus.project)
         self._run(f"DELETE FROM sdd_chunk WHERE project = {project}")
+        self._run(f"DELETE FROM sdd_file WHERE project = {project}")
         self._run(f"DELETE FROM sdd_document WHERE project = {project}")
         imported_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         version = spec_version or corpus.spec_version
@@ -222,6 +231,12 @@ class CorpusStore:
             "sdd_document(doc_id, project, kind, path, version, sha256, imported_at)",
             doc_values,
         )
+
+        file_values = [
+            "(" + ", ".join((quote(doc.doc_id), quote(doc.project), quote(doc.path), quote(doc.text))) + ")"
+            for doc in corpus.documents
+        ]
+        self._insert("sdd_file(doc_id, project, path, text)", file_values)
 
         chunk_values = [
             "("
@@ -319,6 +334,18 @@ class CorpusStore:
             f"ORDER BY path ASC, start_line ASC LIMIT {int(limit)}"
         )
         return [self._hit(row) for row in self._run(sql)]
+
+    def file_texts(self, project: str, paths: tuple[str, ...]) -> dict[str, str]:
+        """Return the exact stored text of whole files the task is allowed to edit."""
+        if not paths:
+            return {}
+        sql = (
+            "SELECT path, text FROM sdd_file "
+            f"WHERE project = {quote(project)} AND path IN ("
+            + ", ".join(quote(path) for path in paths)
+            + ")"
+        )
+        return {row[0]: row[1] for row in self._run(sql)}
 
     def stats(self, project: str) -> dict[str, object]:
         rows = self._run(

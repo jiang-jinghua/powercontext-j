@@ -1,5 +1,0 @@
-{
-  "provider": "manual",
-  "patch": "/home/jjh/minimax-sdd-work/minimax/patches/T-001.patch",
-  "note": "No model call was made for this run; the reviewed patch was applied directly."
-}

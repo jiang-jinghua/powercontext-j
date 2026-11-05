@@ -1,0 +1,46 @@
+--- a/src/order_service/money.py
++++ b/src/order_service/money.py
+@@ -1,6 +1,6 @@
+ """Exact money helpers for the order service."""
+ 
+-from decimal import ROUND_HALF_EVEN, Decimal
++from decimal import ROUND_HALF_UP, Decimal
+ 
+ CENT = Decimal("0.01")
+ 
+@@ -11,5 +11,5 @@
+ 
+ 
+ def round_money(value: object) -> Decimal:
+-    """Round an amount to cents using the platform default rounding mode."""
+-    return money(value).quantize(CENT, rounding=ROUND_HALF_EVEN)
++    """Round an amount to cents using half-up rounding."""
++    return money(value).quantize(CENT, rounding=ROUND_HALF_UP)
+--- a/src/order_service/promotion.py
++++ b/src/order_service/promotion.py
+@@ -13,7 +13,24 @@
+     """Raised when a known coupon does not apply to this order."""
+ 
+ 
+-COUPONS: dict[str, object] = {}
++class Save30Rule:
++    """Apply the SAVE30 coupon to a qualifying goods amount."""
++
++    threshold = money("200")
++    discount = money("30")
++
++    def apply(self, amount: Decimal) -> Decimal:
++        """Return the SAVE30 discount, or reject a below-threshold amount."""
++        if amount < self.threshold:
++            raise CouponNotApplicableError(
++                "SAVE30 requires a goods subtotal of at least 200.00"
++            )
++        return self.discount
++
++
++COUPONS: dict[str, object] = {
++    "SAVE30": Save30Rule(),
++}
+ 
+ 
+ def resolve_coupon(code: str) -> object:

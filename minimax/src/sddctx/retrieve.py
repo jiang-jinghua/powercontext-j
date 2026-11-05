@@ -146,7 +146,7 @@ def retrieve(
     fts_hits = store.search(task.project, query, limit=80)
     exact_hits = store.exact(
         task.project,
-        symbols=tuple(dict.fromkeys((*task.spec_refs, *task.symbols))),
+        symbols=tuple(dict.fromkeys((*task.spec_refs, *task.symbols, *task.target_tests))),
         paths=task.paths,
     )
     all_hits: dict[str, Hit] = {}

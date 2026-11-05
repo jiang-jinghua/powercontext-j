@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from sddctx.errors import PatchError
-from sddctx.patch import apply_patch, extract_diff, touched_paths
+from sddctx.patch import apply_patch, diff_from_files, extract_diff, extract_file_sections, touched_paths
 
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT = ROOT / "demo" / "order-service"
@@ -67,3 +67,38 @@ def test_diff_is_extracted_from_a_fenced_reply() -> None:
 def test_missing_diff_is_rejected() -> None:
     with pytest.raises(PatchError):
         extract_diff("I changed the code, trust me.")
+
+
+def test_whole_file_sections_are_converted_to_a_diff(tmp_path: Path) -> None:
+    workspace = copy_project(tmp_path)
+    replacement = (
+        "### FILE: src/order_service/money.py\n"
+        "```python\n"
+        "from decimal import ROUND_HALF_UP, Decimal\n\n"
+        'CENT = Decimal("0.01")\n\n\n'
+        "def money(value: object) -> Decimal:\n"
+        '    return Decimal(str(value))\n\n\n'
+        "def round_money(value: object) -> Decimal:\n"
+        "    return money(value).quantize(CENT, rounding=ROUND_HALF_UP)\n"
+        "```\n"
+    )
+    sections = extract_file_sections(replacement)
+    assert list(sections) == ["src/order_service/money.py"]
+    diff = diff_from_files(replacement, workspace)
+    assert "--- a/src/order_service/money.py" in diff
+    apply_patch(diff, workspace)
+    assert "ROUND_HALF_UP" in (workspace / "src/order_service/money.py").read_text(encoding="utf-8")
+
+
+def test_whole_file_sections_may_not_touch_tests(tmp_path: Path) -> None:
+    workspace = copy_project(tmp_path)
+    reply = "### FILE: tests/test_money.py\n```python\nprint('x')\n```\n"
+    with pytest.raises(PatchError):
+        diff_from_files(reply, workspace)
+
+
+def test_whole_file_sections_reject_invalid_python(tmp_path: Path) -> None:
+    workspace = copy_project(tmp_path)
+    reply = "### FILE: src/order_service/money.py\n```python\ndef broken(:\n```\n"
+    with pytest.raises(PatchError):
+        diff_from_files(reply, workspace)

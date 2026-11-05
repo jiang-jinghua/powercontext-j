@@ -1,6 +1,5 @@
 """Coupon registry and coupon application."""
 
-from dataclasses import dataclass
 from decimal import Decimal
 
 from .money import money
@@ -14,28 +13,27 @@ class CouponNotApplicableError(ValueError):
     """Raised when a known coupon does not apply to this order."""
 
 
-@dataclass(frozen=True)
-class CouponRule:
-    """A fixed-amount coupon judged on the goods subtotal."""
+class Save30Rule:
+    """Apply the SAVE30 coupon to a qualifying goods amount."""
 
-    code: str
-    threshold: Decimal
-    amount: Decimal
+    threshold = money("200")
+    discount = money("30")
 
-    def apply(self, goods: Decimal) -> Decimal:
-        if goods < self.threshold:
+    def apply(self, amount: Decimal) -> Decimal:
+        """Return the SAVE30 discount, or reject a below-threshold amount."""
+        if amount < self.threshold:
             raise CouponNotApplicableError(
-                f"{self.code} requires goods of at least {self.threshold}, got {goods}"
+                "SAVE30 requires a goods subtotal of at least 200.00"
             )
-        return self.amount
+        return self.discount
 
 
-COUPONS: dict[str, CouponRule] = {
-    "SAVE30": CouponRule(code="SAVE30", threshold=money("200"), amount=money("30")),
+COUPONS: dict[str, object] = {
+    "SAVE30": Save30Rule(),
 }
 
 
-def resolve_coupon(code: str) -> CouponRule:
+def resolve_coupon(code: str) -> object:
     """Look up a coupon rule by code."""
     try:
         return COUPONS[code]
