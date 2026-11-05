@@ -199,6 +199,33 @@ class ArtifactProcessingIntentRepository:
         rows = (await connection.execute(statement.order_by(table.c.pending_sequence).limit(limit))).mappings()
         return tuple(StoredArtifactProcessingIntent.model_validate(dict(row)) for row in rows)
 
+    async def scan_pending(
+        self,
+        connection: AsyncConnection,
+        binding_name: str,
+        /,
+        *,
+        after_scope_id: str | None = None,
+        limit: int = 100,
+    ) -> tuple[StoredArtifactProcessingIntent, ...]:
+        """Return one keyset page of scopes holding domain work no one accepted yet."""
+
+        _require_identifier("binding_name", binding_name, MAX_BINDING_NAME_LENGTH)
+        if after_scope_id is not None:
+            _require_identifier("after_scope_id", after_scope_id, MAX_SCOPE_ID_LENGTH)
+        if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
+            raise InvalidRepositoryArgumentError("limit", "must be a positive integer")
+        table = ARTIFACT_PROCESSING_INTENTS_TABLE
+        statement = select(table).where(
+            table.c.binding_name == binding_name,
+            table.c.dirty_generation > table.c.clean_generation,
+            table.c.requested_generation == table.c.handled_generation,
+        )
+        if after_scope_id is not None:
+            statement = statement.where(table.c.scope_id > after_scope_id)
+        rows = (await connection.execute(statement.order_by(table.c.scope_id).limit(limit))).mappings()
+        return tuple(StoredArtifactProcessingIntent.model_validate(dict(row)) for row in rows)
+
     async def max_sequence(self, connection: AsyncConnection, binding_name: str, /) -> int:
         _require_identifier("binding_name", binding_name, MAX_BINDING_NAME_LENGTH)
         table = ARTIFACT_PROCESSING_INTENTS_TABLE
