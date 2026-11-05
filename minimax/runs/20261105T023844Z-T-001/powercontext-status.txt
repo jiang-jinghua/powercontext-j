@@ -1,0 +1,15 @@
+# PowerContext 任务状态
+
+- `2026-11-05T02:38:45Z` [run] T-001 passed — passed：改动 src/order_service/money.py, src/order_service/promotion.py；目标测试 6 条，回归 13 条通过
+- `2026-11-05T02:38:45Z` [validation] T-001 passed — 目标测试 6/6 通过；回归 13 条通过
+  - no_new_failures: True
+  - ok: True
+  - regression_passed: ['tests/test_money.py::test_money_parses_exact_decimal', 'tests/test_money.py::test_round_money_handles_whole_numbers', 'tests/test_money.py::test_round_money_keeps_cents', 'tests/test_pricing.py::test_member_discount_applies_at_threshold', 'tests/test_pricing.py::test_member_discount_is_zero_below_threshold', 'tests/test_pricing.py::test_member_discount_rounds_to_cents', 'tests/test_pricing.py::test_shipping_is_charged_below_threshold', 'tests/test_pricing.py::test_shipping_is_free_at_threshold', 'tests/test_pricing.py::test_subtotal_sums_line_amounts', 'tests/test_service.py::test_empty_cart_is_rejected', 'tests/test_service.py::test_quote_is_free_shipping_above_threshold', 'tests/test_service.py::test_quote_without_coupon_applies_member_discount', 'tests/test_service.py::test_unknown_coupon_is_rejected']
+  - target_failed_before: ['tests/test_coupon.py::test_money_rounding_is_half_up', 'tests/test_coupon.py::test_save30_applies_at_threshold', 'tests/test_coupon.py::test_save30_does_not_reduce_shipping', 'tests/test_coupon.py::test_save30_is_rejected_below_threshold', 'tests/test_coupon.py::test_save30_stacks_after_member_discount', 'tests/test_coupon.py::test_save30_threshold_excludes_shipping']
+  - target_passed_after: ['tests/test_coupon.py::test_money_rounding_is_half_up', 'tests/test_coupon.py::test_save30_applies_at_threshold', 'tests/test_coupon.py::test_save30_does_not_reduce_shipping', 'tests/test_coupon.py::test_save30_is_rejected_below_threshold', 'tests/test_coupon.py::test_save30_stacks_after_member_discount', 'tests/test_coupon.py::test_save30_threshold_excludes_shipping']
+  - target_tests: ['tests/test_coupon.py::test_money_rounding_is_half_up', 'tests/test_coupon.py::test_save30_applies_at_threshold', 'tests/test_coupon.py::test_save30_does_not_reduce_shipping', 'tests/test_coupon.py::test_save30_is_rejected_below_threshold', 'tests/test_coupon.py::test_save30_stacks_after_member_discount', 'tests/test_coupon.py::test_save30_threshold_excludes_shipping']
+  - tests_tree_sha256_after: 9b8ccfa17db579af473151c572b2a131d396d7aa94a27e00cbabe49d36790fd0
+  - tests_tree_sha256_before: 9b8ccfa17db579af473151c572b2a131d396d7aa94a27e00cbabe49d36790fd0
+  - tests_untouched: True
+- `2026-11-05T02:38:45Z` [todo] T-001 closed — T-002 规格变更复核（门槛 200→150）
+

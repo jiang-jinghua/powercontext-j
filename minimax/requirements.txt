@@ -1,0 +1,7 @@
+pymysql>=1.2,<1.3
+httpx>=0.28,<1
+PyYAML>=6,<7
+powercontext[server]==1.2.0
+# Embedded seekdb is Linux/macOS only; on Windows point SDD_STORE=mysql at a server.
+pylibseekdb>=1.4.0.post2,<2; sys_platform != "win32"
+pytest>=8,<9

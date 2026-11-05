@@ -1,0 +1,37 @@
+id: T-001
+title: 实现 SAVE30 满减券并修正金额舍入
+project: order-service
+statement: |
+  按照 specs/promotion.md 的 SPEC-PRM-002 与 SPEC-PRM-003，为券码 SAVE30 实现满减：
+  商品小计大于或等于 200 元时减免 30 元，不足 200 元时抛出 CouponNotApplicableError；
+  门槛只按商品小计判断，不得把运费计入。优惠券在会员折扣之后应用，两者都不减免运费，
+  优惠后商品金额不得小于 0。同时按 SPEC-PRC-002 把金额舍入从银行家舍入改为
+  ROUND_HALF_UP。不得修改 tests/ 下的任何文件；未知券码仍抛 UnknownCouponError。
+spec_refs:
+  - SPEC-PRM-002
+  - SPEC-PRM-003
+  - SPEC-PRC-002
+  - SPEC-PRM-004
+symbols:
+  - order_service.promotion.apply_coupon
+  - order_service.service.quote
+  - order_service.money.round_money
+paths:
+  - src/order_service/promotion.py
+  - src/order_service/service.py
+  - src/order_service/money.py
+target_tests:
+  - tests/test_coupon.py::test_save30_applies_at_threshold
+  - tests/test_coupon.py::test_save30_is_rejected_below_threshold
+  - tests/test_coupon.py::test_save30_threshold_excludes_shipping
+  - tests/test_coupon.py::test_save30_stacks_after_member_discount
+  - tests/test_coupon.py::test_save30_does_not_reduce_shipping
+  - tests/test_coupon.py::test_money_rounding_is_half_up
+regression_tests:
+  - tests/test_money.py
+  - tests/test_pricing.py
+  - tests/test_service.py
+acceptance:
+  - tests/test_coupon.py 的 6 条目标测试由失败变为全部通过
+  - tests/test_money.py、tests/test_pricing.py、tests/test_service.py 的 13 条回归测试保持通过
+  - 修改只涉及 src/ 下的生产代码，tests/ 目录逐字节不变

@@ -1,0 +1,152 @@
+{
+  "run_id": "20261105T023844Z-T-001",
+  "status": "passed",
+  "verification": {
+    "target_tests": [
+      "tests/test_coupon.py::test_money_rounding_is_half_up",
+      "tests/test_coupon.py::test_save30_applies_at_threshold",
+      "tests/test_coupon.py::test_save30_does_not_reduce_shipping",
+      "tests/test_coupon.py::test_save30_is_rejected_below_threshold",
+      "tests/test_coupon.py::test_save30_stacks_after_member_discount",
+      "tests/test_coupon.py::test_save30_threshold_excludes_shipping"
+    ],
+    "target_failed_before": [
+      "tests/test_coupon.py::test_money_rounding_is_half_up",
+      "tests/test_coupon.py::test_save30_applies_at_threshold",
+      "tests/test_coupon.py::test_save30_does_not_reduce_shipping",
+      "tests/test_coupon.py::test_save30_is_rejected_below_threshold",
+      "tests/test_coupon.py::test_save30_stacks_after_member_discount",
+      "tests/test_coupon.py::test_save30_threshold_excludes_shipping"
+    ],
+    "target_passed_after": [
+      "tests/test_coupon.py::test_money_rounding_is_half_up",
+      "tests/test_coupon.py::test_save30_applies_at_threshold",
+      "tests/test_coupon.py::test_save30_does_not_reduce_shipping",
+      "tests/test_coupon.py::test_save30_is_rejected_below_threshold",
+      "tests/test_coupon.py::test_save30_stacks_after_member_discount",
+      "tests/test_coupon.py::test_save30_threshold_excludes_shipping"
+    ],
+    "regression_passed": [
+      "tests/test_money.py::test_money_parses_exact_decimal",
+      "tests/test_money.py::test_round_money_handles_whole_numbers",
+      "tests/test_money.py::test_round_money_keeps_cents",
+      "tests/test_pricing.py::test_member_discount_applies_at_threshold",
+      "tests/test_pricing.py::test_member_discount_is_zero_below_threshold",
+      "tests/test_pricing.py::test_member_discount_rounds_to_cents",
+      "tests/test_pricing.py::test_shipping_is_charged_below_threshold",
+      "tests/test_pricing.py::test_shipping_is_free_at_threshold",
+      "tests/test_pricing.py::test_subtotal_sums_line_amounts",
+      "tests/test_service.py::test_empty_cart_is_rejected",
+      "tests/test_service.py::test_quote_is_free_shipping_above_threshold",
+      "tests/test_service.py::test_quote_without_coupon_applies_member_discount",
+      "tests/test_service.py::test_unknown_coupon_is_rejected"
+    ],
+    "no_new_failures": true,
+    "tests_untouched": true,
+    "tests_tree_sha256_before": "9b8ccfa17db579af473151c572b2a131d396d7aa94a27e00cbabe49d36790fd0",
+    "tests_tree_sha256_after": "9b8ccfa17db579af473151c572b2a131d396d7aa94a27e00cbabe49d36790fd0",
+    "spec_refs_in_context": [],
+    "target_tests_in_context": [],
+    "ok": true
+  },
+  "provider": "manual",
+  "model": "manual-patch",
+  "context": {
+    "spec": [
+      "SPEC-PRM-002",
+      "SPEC-PRM-003",
+      "SPEC-PRM-004",
+      "SPEC-PRC-002"
+    ],
+    "code": [
+      "order_service.service.quote",
+      "order_service.promotion.apply_coupon",
+      "order_service.money.round_money"
+    ],
+    "tests": [
+      "tests/test_coupon.py::test_save30_threshold_excludes_shipping",
+      "tests/test_coupon.py::test_save30_is_rejected_below_threshold",
+      "tests/test_coupon.py::test_save30_does_not_reduce_shipping",
+      "tests/test_coupon.py::test_save30_applies_at_threshold",
+      "tests/test_coupon.py::test_save30_stacks_after_member_discount",
+      "tests/test_coupon.py::test_money_rounding_is_half_up"
+    ],
+    "tokens": 835,
+    "db_rows": 46
+  },
+  "changes": [
+    {
+      "path": "src/order_service/money.py",
+      "added": 3,
+      "removed": 3,
+      "created": false
+    },
+    {
+      "path": "src/order_service/promotion.py",
+      "added": 21,
+      "removed": 2,
+      "created": false
+    }
+  ],
+  "before": {
+    "exit_code": 1,
+    "duration_ms": 155,
+    "passed": 13,
+    "failed": [
+      "tests/test_coupon.py::test_money_rounding_is_half_up",
+      "tests/test_coupon.py::test_save30_applies_at_threshold",
+      "tests/test_coupon.py::test_save30_does_not_reduce_shipping",
+      "tests/test_coupon.py::test_save30_is_rejected_below_threshold",
+      "tests/test_coupon.py::test_save30_stacks_after_member_discount",
+      "tests/test_coupon.py::test_save30_threshold_excludes_shipping"
+    ],
+    "outcomes": {
+      "tests/test_coupon.py::test_money_rounding_is_half_up": "FAILED",
+      "tests/test_coupon.py::test_save30_applies_at_threshold": "FAILED",
+      "tests/test_coupon.py::test_save30_does_not_reduce_shipping": "FAILED",
+      "tests/test_coupon.py::test_save30_is_rejected_below_threshold": "FAILED",
+      "tests/test_coupon.py::test_save30_stacks_after_member_discount": "FAILED",
+      "tests/test_coupon.py::test_save30_threshold_excludes_shipping": "FAILED",
+      "tests/test_money.py::test_money_parses_exact_decimal": "PASSED",
+      "tests/test_money.py::test_round_money_handles_whole_numbers": "PASSED",
+      "tests/test_money.py::test_round_money_keeps_cents": "PASSED",
+      "tests/test_pricing.py::test_member_discount_applies_at_threshold": "PASSED",
+      "tests/test_pricing.py::test_member_discount_is_zero_below_threshold": "PASSED",
+      "tests/test_pricing.py::test_member_discount_rounds_to_cents": "PASSED",
+      "tests/test_pricing.py::test_shipping_is_charged_below_threshold": "PASSED",
+      "tests/test_pricing.py::test_shipping_is_free_at_threshold": "PASSED",
+      "tests/test_pricing.py::test_subtotal_sums_line_amounts": "PASSED",
+      "tests/test_service.py::test_empty_cart_is_rejected": "PASSED",
+      "tests/test_service.py::test_quote_is_free_shipping_above_threshold": "PASSED",
+      "tests/test_service.py::test_quote_without_coupon_applies_member_discount": "PASSED",
+      "tests/test_service.py::test_unknown_coupon_is_rejected": "PASSED"
+    }
+  },
+  "after": {
+    "exit_code": 0,
+    "duration_ms": 140,
+    "passed": 19,
+    "failed": [],
+    "outcomes": {
+      "tests/test_coupon.py::test_money_rounding_is_half_up": "PASSED",
+      "tests/test_coupon.py::test_save30_applies_at_threshold": "PASSED",
+      "tests/test_coupon.py::test_save30_does_not_reduce_shipping": "PASSED",
+      "tests/test_coupon.py::test_save30_is_rejected_below_threshold": "PASSED",
+      "tests/test_coupon.py::test_save30_stacks_after_member_discount": "PASSED",
+      "tests/test_coupon.py::test_save30_threshold_excludes_shipping": "PASSED",
+      "tests/test_money.py::test_money_parses_exact_decimal": "PASSED",
+      "tests/test_money.py::test_round_money_handles_whole_numbers": "PASSED",
+      "tests/test_money.py::test_round_money_keeps_cents": "PASSED",
+      "tests/test_pricing.py::test_member_discount_applies_at_threshold": "PASSED",
+      "tests/test_pricing.py::test_member_discount_is_zero_below_threshold": "PASSED",
+      "tests/test_pricing.py::test_member_discount_rounds_to_cents": "PASSED",
+      "tests/test_pricing.py::test_shipping_is_charged_below_threshold": "PASSED",
+      "tests/test_pricing.py::test_shipping_is_free_at_threshold": "PASSED",
+      "tests/test_pricing.py::test_subtotal_sums_line_amounts": "PASSED",
+      "tests/test_service.py::test_empty_cart_is_rejected": "PASSED",
+      "tests/test_service.py::test_quote_is_free_shipping_above_threshold": "PASSED",
+      "tests/test_service.py::test_quote_without_coupon_applies_member_discount": "PASSED",
+      "tests/test_service.py::test_unknown_coupon_is_rejected": "PASSED"
+    }
+  }
+}

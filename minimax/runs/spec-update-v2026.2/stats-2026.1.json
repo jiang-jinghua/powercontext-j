@@ -1,0 +1,15 @@
+{
+  "documents": 13,
+  "chunks_by_kind": {
+    "code": 18,
+    "spec": 12,
+    "test": 26
+  },
+  "last_import": {
+    "import_id": "imp_1793846323",
+    "spec_version": "2026.1",
+    "documents": 13,
+    "chunks": 56,
+    "created_at": "2026-11-05T02:38:43Z"
+  }
+}

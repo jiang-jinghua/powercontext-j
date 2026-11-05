@@ -1,0 +1,29 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.2.0, pluggy-1.7.0 -- /home/jjh/minimax-sdd-work/.venv-pc12/bin/python
+rootdir: /home/jjh/minimax-sdd-work/minimax/runs/20261105T023844Z-T-001/workspace
+configfile: pytest.ini
+testpaths: tests
+plugins: anyio-4.16.0, platformdirs-4.14.5
+collecting ... collected 19 items
+
+tests/test_coupon.py::test_save30_applies_at_threshold PASSED            [  5%]
+tests/test_coupon.py::test_save30_is_rejected_below_threshold PASSED     [ 10%]
+tests/test_coupon.py::test_save30_threshold_excludes_shipping PASSED     [ 15%]
+tests/test_coupon.py::test_save30_stacks_after_member_discount PASSED    [ 21%]
+tests/test_coupon.py::test_save30_does_not_reduce_shipping PASSED        [ 26%]
+tests/test_coupon.py::test_money_rounding_is_half_up PASSED              [ 31%]
+tests/test_money.py::test_money_parses_exact_decimal PASSED              [ 36%]
+tests/test_money.py::test_round_money_keeps_cents PASSED                 [ 42%]
+tests/test_money.py::test_round_money_handles_whole_numbers PASSED       [ 47%]
+tests/test_pricing.py::test_subtotal_sums_line_amounts PASSED            [ 52%]
+tests/test_pricing.py::test_shipping_is_free_at_threshold PASSED         [ 57%]
+tests/test_pricing.py::test_shipping_is_charged_below_threshold PASSED   [ 63%]
+tests/test_pricing.py::test_member_discount_applies_at_threshold PASSED  [ 68%]
+tests/test_pricing.py::test_member_discount_is_zero_below_threshold PASSED [ 73%]
+tests/test_pricing.py::test_member_discount_rounds_to_cents PASSED       [ 78%]
+tests/test_service.py::test_quote_without_coupon_applies_member_discount PASSED [ 84%]
+tests/test_service.py::test_quote_is_free_shipping_above_threshold PASSED [ 89%]
+tests/test_service.py::test_unknown_coupon_is_rejected PASSED            [ 94%]
+tests/test_service.py::test_empty_cart_is_rejected PASSED                [100%]
+
+============================== 19 passed in 0.02s ==============================

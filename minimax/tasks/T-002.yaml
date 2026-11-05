@@ -1,0 +1,18 @@
+id: T-002
+title: SAVE30 门槛调整为 150 元（规格 v2026.2）
+project: order-service
+statement: |
+  规格升级到 v2026.2：SAVE30 的门槛由 200 元调整为 150 元，其余规则不变。
+  本任务不修改代码，只要求上下文模块在重新导入规格后，返回更新后的 SPEC-PRM-002 文本，
+  并带出 T-001 留下的验证结果与待办状态。
+spec_refs:
+  - SPEC-PRM-002
+symbols:
+  - order_service.promotion.apply_coupon
+paths:
+  - src/order_service/promotion.py
+target_tests: []
+regression_tests: []
+acceptance:
+  - 上下文中的 SPEC-PRM-002 文本包含 150 元，且不含 200 元门槛
+  - 上下文包含 T-001 的运行状态与验证结果

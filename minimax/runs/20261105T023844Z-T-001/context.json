@@ -1,0 +1,124 @@
+{
+  "task": {
+    "id": "T-001",
+    "title": "实现 SAVE30 满减券并修正金额舍入",
+    "project": "order-service"
+  },
+  "query": "实现 SAVE30 满减券并修正金额舍入 按照 specs promotion SPEC PRM 为券码 实现满减 商品小计大于或等于 元时减免 不足 元时抛出 CouponNotApplicableError 门槛只按商品小计判断 不得把运费计入 优惠券在会员折扣之后应用 两者都不减免运费 优惠后商品金额不得小于 同时按 PRC 把金额舍入从银行家舍入改为 ROUND_HALF_UP 不得修改 tests 下的任何文件 未知券码仍抛 UnknownCouponError test_coupon 条目标测试由失败变为全部通过 test_money test_pricing test_service 条回归测试保持通过 修改只涉及 src 下的生产代码 目录逐字节不变 apply_coupon quote round_money service money test applies at threshold",
+  "budget_tokens": 3600,
+  "tokens": 835,
+  "truncated": false,
+  "db_rows": 46,
+  "spec": [
+    {
+      "symbol": "SPEC-PRM-002",
+      "source": "specs/promotion.md:12-15",
+      "path": "specs/promotion.md",
+      "kind": "spec",
+      "score": 4.0,
+      "text": "## SPEC-PRM-002 SAVE30 规则\n\n券码 `SAVE30`：当商品小计大于或等于 200 元时减免 30 元；商品小计不足 200 元时抛出\n`CouponNotApplicableError`。门槛判断只使用商品小计（SPEC-PRC-003），不得把运费计入。"
+    },
+    {
+      "symbol": "SPEC-PRM-003",
+      "source": "specs/promotion.md:17-20",
+      "path": "specs/promotion.md",
+      "kind": "spec",
+      "score": 3.6066,
+      "text": "## SPEC-PRM-003 叠加顺序\n\n先计算会员折扣（SPEC-PRC-005），再应用优惠券；两者都只作用于商品小计。\n优惠后的商品金额不得小于 0；若优惠超过商品金额，按 0 计。"
+    },
+    {
+      "symbol": "SPEC-PRM-004",
+      "source": "specs/promotion.md:22-24",
+      "path": "specs/promotion.md",
+      "kind": "spec",
+      "score": 3.5012,
+      "text": "## SPEC-PRM-004 优惠不含运费\n\n优惠券与会员折扣均不减免运费。运费始终按 SPEC-PRC-004 单独计算，优惠金额不得冲抵运费。"
+    },
+    {
+      "symbol": "SPEC-PRC-002",
+      "source": "specs/pricing.md:15-18",
+      "path": "specs/pricing.md",
+      "kind": "spec",
+      "score": 3.4712,
+      "text": "## SPEC-PRC-002 舍入规则\n\n所有金额结果按 `ROUND_HALF_UP`（四舍五入）保留到分，禁止使用 Python `Decimal` 的默认银行家舍入\n（`ROUND_HALF_EVEN`）。例如 `0.125` 元必须舍入为 `0.13` 元，`1.005` 元必须舍入为 `1.01` 元。"
+    }
+  ],
+  "code": [
+    {
+      "symbol": "order_service.service.quote",
+      "source": "src/order_service/service.py:22-44",
+      "path": "src/order_service/service.py",
+      "kind": "code",
+      "score": 4.5995,
+      "text": "def quote(items: object, coupon_code: str | None = None) -> Quote:\n    \"\"\"Price ``items`` with the optional coupon and the member discount.\"\"\"\n    lines = tuple(items)\n    if not lines:\n        raise ValueError(\"order requires at least one item\")\n\n    goods = subtotal(lines)\n    member = member_discount(goods)\n    coupon = money(\"0\")\n    if coupon_code is not None:\n        coupon = apply_coupon(goods, coupon_code)\n\n    discounted_goods = goods - member - coupon\n    if discounted_goods < 0:\n        discounted_goods = money(\"0\")\n    shipping = shipping_fee(goods)\n    return Quote(\n        subtotal=goods,\n        member_discount=member,\n        coupon_discount=coupon,\n        shipping=shipping,\n        total=round_money(discounted_goods + shipping),\n    )"
+    },
+    {
+      "symbol": "order_service.promotion.apply_coupon",
+      "source": "src/order_service/promotion.py:27-30",
+      "path": "src/order_service/promotion.py",
+      "kind": "code",
+      "score": 4.5529,
+      "text": "def apply_coupon(amount: Decimal, code: str) -> Decimal:\n    \"\"\"Return the discount for ``code`` on the goods amount.\"\"\"\n    rule = resolve_coupon(code)\n    return rule.apply(amount)"
+    },
+    {
+      "symbol": "order_service.money.round_money",
+      "source": "src/order_service/money.py:13-15",
+      "path": "src/order_service/money.py",
+      "kind": "code",
+      "score": 4.5491,
+      "text": "def round_money(value: object) -> Decimal:\n    \"\"\"Round an amount to cents using the platform default rounding mode.\"\"\"\n    return money(value).quantize(CENT, rounding=ROUND_HALF_EVEN)"
+    }
+  ],
+  "tests": [
+    {
+      "symbol": "tests/test_coupon.py::test_save30_threshold_excludes_shipping",
+      "source": "tests/test_coupon.py:29-32",
+      "path": "tests/test_coupon.py",
+      "kind": "test",
+      "score": 2.0635,
+      "text": "def test_save30_threshold_excludes_shipping() -> None:\n    # 195 + 12 shipping = 207; the threshold must still judge on 195 goods only.\n    with pytest.raises(CouponNotApplicableError):\n        quote([item(\"195.00\")], coupon_code=\"SAVE30\")"
+    },
+    {
+      "symbol": "tests/test_coupon.py::test_save30_is_rejected_below_threshold",
+      "source": "tests/test_coupon.py:24-26",
+      "path": "tests/test_coupon.py",
+      "kind": "test",
+      "score": 2.0519,
+      "text": "def test_save30_is_rejected_below_threshold() -> None:\n    with pytest.raises(CouponNotApplicableError):\n        quote([item(\"199.99\")], coupon_code=\"SAVE30\")"
+    },
+    {
+      "symbol": "tests/test_coupon.py::test_save30_does_not_reduce_shipping",
+      "source": "tests/test_coupon.py:42-44",
+      "path": "tests/test_coupon.py",
+      "kind": "test",
+      "score": 1.9822,
+      "text": "def test_save30_does_not_reduce_shipping() -> None:\n    priced = quote([item(\"250.00\")], coupon_code=\"SAVE30\")\n    assert priced.shipping == Decimal(\"12.00\")"
+    },
+    {
+      "symbol": "tests/test_coupon.py::test_save30_applies_at_threshold",
+      "source": "tests/test_coupon.py:18-21",
+      "path": "tests/test_coupon.py",
+      "kind": "test",
+      "score": 1.9717,
+      "text": "def test_save30_applies_at_threshold() -> None:\n    priced = quote([item(\"200.00\")], coupon_code=\"SAVE30\")\n    assert priced.coupon_discount == Decimal(\"30.00\")\n    assert priced.total == Decimal(\"162.00\")"
+    },
+    {
+      "symbol": "tests/test_coupon.py::test_save30_stacks_after_member_discount",
+      "source": "tests/test_coupon.py:35-39",
+      "path": "tests/test_coupon.py",
+      "kind": "test",
+      "score": 1.9636,
+      "text": "def test_save30_stacks_after_member_discount() -> None:\n    priced = quote([item(\"250.00\")], coupon_code=\"SAVE30\")\n    assert priced.member_discount == Decimal(\"25.00\")\n    assert priced.coupon_discount == Decimal(\"30.00\")\n    assert priced.total == Decimal(\"207.00\")"
+    },
+    {
+      "symbol": "tests/test_coupon.py::test_money_rounding_is_half_up",
+      "source": "tests/test_coupon.py:47-49",
+      "path": "tests/test_coupon.py",
+      "kind": "test",
+      "score": 1.9477,
+      "text": "def test_money_rounding_is_half_up() -> None:\n    assert round_money(\"0.125\") == Decimal(\"0.13\")\n    assert round_money(\"1.005\") == Decimal(\"1.01\")"
+    }
+  ],
+  "state": [],
+  "notes": []
+}

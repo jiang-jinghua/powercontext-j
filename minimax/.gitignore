@@ -1,0 +1,7 @@
+.sdd/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+runs/*/workspace/.pytest_cache/
+runs/*/workspace/**/__pycache__/

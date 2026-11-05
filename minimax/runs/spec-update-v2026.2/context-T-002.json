@@ -1,0 +1,242 @@
+{
+  "task": {
+    "id": "T-002",
+    "title": "SAVE30 门槛调整为 150 元（规格 v2026.2）",
+    "project": "order-service"
+  },
+  "query": "SAVE30 门槛调整为 规格 v2026 规格升级到 的门槛由 元调整为 其余规则不变 本任务不修改代码 只要求上下文模块在重新导入规格后 返回更新后的 SPEC PRM 文本 并带出 留下的验证结果与待办状态 上下文中的 文本包含 且不含 元门槛 上下文包含 的运行状态与验证结果 apply_coupon promotion",
+  "budget_tokens": 3600,
+  "tokens": 546,
+  "truncated": false,
+  "db_rows": 27,
+  "spec": [
+    {
+      "symbol": "SPEC-PRM-002",
+      "source": "specs/promotion.md:12-15",
+      "path": "specs/promotion.md",
+      "kind": "spec",
+      "score": 3.9558,
+      "text": "## SPEC-PRM-002 SAVE30 规则\n\n券码 `SAVE30`：当商品小计大于或等于 150 元时减免 30 元；商品小计不足 150 元时抛出\n`CouponNotApplicableError`。门槛判断只使用商品小计（SPEC-PRC-003），不得把运费计入。"
+    },
+    {
+      "symbol": "SPEC-PRC-004",
+      "source": "specs/pricing.md:24-27",
+      "path": "specs/pricing.md",
+      "kind": "spec",
+      "score": 1.0,
+      "text": "## SPEC-PRC-004 运费\n\n商品小计大于或等于 300 元时免运费；否则运费为 12 元。\n免运费门槛只按商品小计判断，不使用会员折扣或优惠券抵扣后的金额。"
+    },
+    {
+      "symbol": "SPEC-PRC-002",
+      "source": "specs/pricing.md:15-18",
+      "path": "specs/pricing.md",
+      "kind": "spec",
+      "score": 0.931,
+      "text": "## SPEC-PRC-002 舍入规则\n\n所有金额结果按 `ROUND_HALF_UP`（四舍五入）保留到分，禁止使用 Python `Decimal` 的默认银行家舍入\n（`ROUND_HALF_EVEN`）。例如 `0.125` 元必须舍入为 `0.13` 元，`1.005` 元必须舍入为 `1.01` 元。"
+    },
+    {
+      "symbol": "SPEC-SHP-001",
+      "source": "specs/shipping.md:8-10",
+      "path": "specs/shipping.md",
+      "kind": "spec",
+      "score": 0.7449,
+      "text": "## SPEC-SHP-001 免运费与优惠叠加\n\n免运费门槛按商品小计判断。优惠券与会员折扣不改变免运费判断，也不抵扣已经产生的运费。"
+    }
+  ],
+  "code": [
+    {
+      "symbol": "order_service.promotion.apply_coupon",
+      "source": "src/order_service/promotion.py:27-30",
+      "path": "src/order_service/promotion.py",
+      "kind": "code",
+      "score": 4.6742,
+      "text": "def apply_coupon(amount: Decimal, code: str) -> Decimal:\n    \"\"\"Return the discount for ``code`` on the goods amount.\"\"\"\n    rule = resolve_coupon(code)\n    return rule.apply(amount)"
+    },
+    {
+      "symbol": "order_service.promotion::<module>",
+      "source": "src/order_service/promotion.py:1-7",
+      "path": "src/order_service/promotion.py",
+      "kind": "code",
+      "score": 2.0,
+      "text": "\"\"\"Coupon registry and coupon application.\"\"\"\n\nfrom decimal import Decimal\n\nfrom .money import money"
+    },
+    {
+      "symbol": "order_service.promotion.UnknownCouponError",
+      "source": "src/order_service/promotion.py:8-9",
+      "path": "src/order_service/promotion.py",
+      "kind": "code",
+      "score": 2.0,
+      "text": "class UnknownCouponError(ValueError):\n    \"\"\"Raised when a coupon code is not registered.\"\"\""
+    },
+    {
+      "symbol": "order_service.promotion.CouponNotApplicableError",
+      "source": "src/order_service/promotion.py:12-13",
+      "path": "src/order_service/promotion.py",
+      "kind": "code",
+      "score": 2.0,
+      "text": "class CouponNotApplicableError(ValueError):\n    \"\"\"Raised when a known coupon does not apply to this order.\"\"\""
+    },
+    {
+      "symbol": "order_service.promotion.resolve_coupon",
+      "source": "src/order_service/promotion.py:19-24",
+      "path": "src/order_service/promotion.py",
+      "kind": "code",
+      "score": 2.0,
+      "text": "def resolve_coupon(code: str) -> object:\n    \"\"\"Look up a coupon rule by code.\"\"\"\n    try:\n        return COUPONS[code]\n    except KeyError as exc:\n        raise UnknownCouponError(f\"unknown coupon: {code}\") from exc"
+    },
+    {
+      "symbol": "order_service.promotion.no_discount",
+      "source": "src/order_service/promotion.py:33-35",
+      "path": "src/order_service/promotion.py",
+      "kind": "code",
+      "score": 2.0,
+      "text": "def no_discount() -> Decimal:\n    \"\"\"A convenience zero used by callers that do not apply a coupon.\"\"\"\n    return money(\"0\")"
+    }
+  ],
+  "tests": [
+    {
+      "symbol": "tests/test_coupon.py::test_save30_is_rejected_below_threshold",
+      "source": "tests/test_coupon.py:24-26",
+      "path": "tests/test_coupon.py",
+      "kind": "test",
+      "score": 0.1917,
+      "text": "def test_save30_is_rejected_below_threshold() -> None:\n    with pytest.raises(CouponNotApplicableError):\n        quote([item(\"199.99\")], coupon_code=\"SAVE30\")"
+    },
+    {
+      "symbol": "tests/test_coupon.py::test_save30_does_not_reduce_shipping",
+      "source": "tests/test_coupon.py:42-44",
+      "path": "tests/test_coupon.py",
+      "kind": "test",
+      "score": 0.1777,
+      "text": "def test_save30_does_not_reduce_shipping() -> None:\n    priced = quote([item(\"250.00\")], coupon_code=\"SAVE30\")\n    assert priced.shipping == Decimal(\"12.00\")"
+    }
+  ],
+  "state": [
+    {
+      "changed_files": [
+        "src/order_service/money.py",
+        "src/order_service/promotion.py"
+      ],
+      "context": {
+        "code": [
+          "order_service.service.quote",
+          "order_service.promotion.apply_coupon",
+          "order_service.money.round_money"
+        ],
+        "spec": [
+          "SPEC-PRM-002",
+          "SPEC-PRM-003",
+          "SPEC-PRM-004",
+          "SPEC-PRC-002"
+        ],
+        "tests": [
+          "tests/test_coupon.py::test_save30_threshold_excludes_shipping",
+          "tests/test_coupon.py::test_save30_is_rejected_below_threshold",
+          "tests/test_coupon.py::test_save30_does_not_reduce_shipping",
+          "tests/test_coupon.py::test_save30_applies_at_threshold",
+          "tests/test_coupon.py::test_save30_stacks_after_member_discount",
+          "tests/test_coupon.py::test_money_rounding_is_half_up"
+        ],
+        "tokens": 835
+      },
+      "diff_sha256": "e5826804ef11b3473d1c27422d447dac6d6bb7d88d896242f2dde952134e2792",
+      "kind": "run",
+      "model": "manual-patch",
+      "project": "order-service",
+      "provider": "manual",
+      "run_id": "20261105T023844Z-T-001",
+      "saved_at": "2026-11-05T02:38:45Z",
+      "status": "passed",
+      "summary": "passed：改动 src/order_service/money.py, src/order_service/promotion.py；目标测试 6 条，回归 13 条通过",
+      "task_id": "T-001",
+      "tests": {
+        "failed_after": [],
+        "failed_before": [
+          "tests/test_coupon.py::test_money_rounding_is_half_up",
+          "tests/test_coupon.py::test_save30_applies_at_threshold",
+          "tests/test_coupon.py::test_save30_does_not_reduce_shipping",
+          "tests/test_coupon.py::test_save30_is_rejected_below_threshold",
+          "tests/test_coupon.py::test_save30_stacks_after_member_discount",
+          "tests/test_coupon.py::test_save30_threshold_excludes_shipping"
+        ],
+        "passed_after": 19,
+        "target": [
+          "tests/test_coupon.py::test_money_rounding_is_half_up",
+          "tests/test_coupon.py::test_save30_applies_at_threshold",
+          "tests/test_coupon.py::test_save30_does_not_reduce_shipping",
+          "tests/test_coupon.py::test_save30_is_rejected_below_threshold",
+          "tests/test_coupon.py::test_save30_stacks_after_member_discount",
+          "tests/test_coupon.py::test_save30_threshold_excludes_shipping"
+        ]
+      }
+    },
+    {
+      "checks": {
+        "no_new_failures": true,
+        "ok": true,
+        "regression_passed": [
+          "tests/test_money.py::test_money_parses_exact_decimal",
+          "tests/test_money.py::test_round_money_handles_whole_numbers",
+          "tests/test_money.py::test_round_money_keeps_cents",
+          "tests/test_pricing.py::test_member_discount_applies_at_threshold",
+          "tests/test_pricing.py::test_member_discount_is_zero_below_threshold",
+          "tests/test_pricing.py::test_member_discount_rounds_to_cents",
+          "tests/test_pricing.py::test_shipping_is_charged_below_threshold",
+          "tests/test_pricing.py::test_shipping_is_free_at_threshold",
+          "tests/test_pricing.py::test_subtotal_sums_line_amounts",
+          "tests/test_service.py::test_empty_cart_is_rejected",
+          "tests/test_service.py::test_quote_is_free_shipping_above_threshold",
+          "tests/test_service.py::test_quote_without_coupon_applies_member_discount",
+          "tests/test_service.py::test_unknown_coupon_is_rejected"
+        ],
+        "spec_refs_in_context": [],
+        "target_failed_before": [
+          "tests/test_coupon.py::test_money_rounding_is_half_up",
+          "tests/test_coupon.py::test_save30_applies_at_threshold",
+          "tests/test_coupon.py::test_save30_does_not_reduce_shipping",
+          "tests/test_coupon.py::test_save30_is_rejected_below_threshold",
+          "tests/test_coupon.py::test_save30_stacks_after_member_discount",
+          "tests/test_coupon.py::test_save30_threshold_excludes_shipping"
+        ],
+        "target_passed_after": [
+          "tests/test_coupon.py::test_money_rounding_is_half_up",
+          "tests/test_coupon.py::test_save30_applies_at_threshold",
+          "tests/test_coupon.py::test_save30_does_not_reduce_shipping",
+          "tests/test_coupon.py::test_save30_is_rejected_below_threshold",
+          "tests/test_coupon.py::test_save30_stacks_after_member_discount",
+          "tests/test_coupon.py::test_save30_threshold_excludes_shipping"
+        ],
+        "target_tests": [
+          "tests/test_coupon.py::test_money_rounding_is_half_up",
+          "tests/test_coupon.py::test_save30_applies_at_threshold",
+          "tests/test_coupon.py::test_save30_does_not_reduce_shipping",
+          "tests/test_coupon.py::test_save30_is_rejected_below_threshold",
+          "tests/test_coupon.py::test_save30_stacks_after_member_discount",
+          "tests/test_coupon.py::test_save30_threshold_excludes_shipping"
+        ],
+        "target_tests_in_context": [],
+        "tests_tree_sha256_after": "9b8ccfa17db579af473151c572b2a131d396d7aa94a27e00cbabe49d36790fd0",
+        "tests_tree_sha256_before": "9b8ccfa17db579af473151c572b2a131d396d7aa94a27e00cbabe49d36790fd0",
+        "tests_untouched": true
+      },
+      "kind": "validation",
+      "project": "order-service",
+      "run_id": "20261105T023844Z-T-001",
+      "saved_at": "2026-11-05T02:38:45Z",
+      "status": "passed",
+      "summary": "目标测试 6/6 通过；回归 13 条通过",
+      "task_id": "T-001"
+    },
+    {
+      "items": [],
+      "kind": "todo",
+      "project": "order-service",
+      "run_id": "20261105T023844Z-T-001",
+      "saved_at": "2026-11-05T02:38:45Z",
+      "status": "closed",
+      "summary": "T-002 规格变更复核（门槛 200→150）",
+      "task_id": "T-001"
+    }
+  ],
+  "notes": []
+}

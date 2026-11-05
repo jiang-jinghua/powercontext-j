@@ -1,0 +1,27 @@
+[
+  {
+    "sql_preview": "\n    CREATE TABLE IF NOT EXISTS sdd_document (\n        doc_id VARCHAR(64) NOT NULL PRIMARY KEY,\n        project VARCHAR(64) NOT NULL,\n        kind VARCHAR(16) NOT NULL,\n        path VARCHAR(512) NOT NULL,\n        version VARCHAR(64) NOT NULL,\n        sha256 CHAR(64) NOT NULL,\n        imported_at VARCHAR(40) NOT NULL\n    )\n    ",
+    "rows": 0,
+    "elapsed_ms": 4.646
+  },
+  {
+    "sql_preview": "\n    CREATE TABLE IF NOT EXISTS sdd_chunk (\n        chunk_id VARCHAR(64) NOT NULL PRIMARY KEY,\n        doc_id VARCHAR(64) NOT NULL,\n        project VARCHAR(64) NOT NULL,\n        kind VARCHAR(16) NOT NULL,\n        symbol VARCHAR(256) NOT NULL,\n        path VARCHAR(512) NOT NULL,\n        start_line INT NOT NULL,\n        end_line INT NOT NULL,\n        tokens INT NOT NULL,\n        text LONGTEXT NOT NU",
+    "rows": 0,
+    "elapsed_ms": 0.773
+  },
+  {
+    "sql_preview": "\n    CREATE TABLE IF NOT EXISTS sdd_import (\n        import_id VARCHAR(64) NOT NULL PRIMARY KEY,\n        project VARCHAR(64) NOT NULL,\n        spec_version VARCHAR(64) NOT NULL,\n        documents INT NOT NULL,\n        chunks INT NOT NULL,\n        created_at VARCHAR(40) NOT NULL\n    )\n    ",
+    "rows": 0,
+    "elapsed_ms": 0.623
+  },
+  {
+    "sql_preview": "SELECT chunk_id, doc_id, kind, symbol, path, start_line, end_line, tokens, text, MATCH(text) AGAINST ('实现 SAVE30 满减券并修正金额舍入 按照 specs promotion SPEC PRM 为券码 实现满减 商品小计大于或等于 元时减免 不足 元时抛出 CouponNotApplicableError 门槛只按商品小计判断 不得把运费计入 优惠券在会员折扣之后应用 两者都不减免运费 优惠后商品金额不得小于 同时按 PRC 把金额舍入从银行家舍入改为 ROUND_HALF_UP 不得修改 tests 下的任何文件 未知券码仍抛 UnknownCouponError test_coupon 条目标测试由失败变为全部通过 test_money test_pricing test_se",
+    "rows": 46,
+    "elapsed_ms": 58.419
+  },
+  {
+    "sql_preview": "SELECT chunk_id, doc_id, kind, symbol, path, start_line, end_line, tokens, text, 0 AS score FROM sdd_chunk WHERE project = 'order-service' AND (symbol IN ('SPEC-PRM-002', 'SPEC-PRM-003', 'SPEC-PRC-002', 'SPEC-PRM-004', 'order_service.promotion.apply_coupon', 'order_service.service.quote', 'order_service.money.round_money') OR path IN ('src/order_service/promotion.py', 'src/order_service/service.py",
+    "rows": 16,
+    "elapsed_ms": 0.997
+  }
+]
