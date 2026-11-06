@@ -1,0 +1,22 @@
+# 本地工作目录（不在项目交付范围内）
+.workbuddy/
+
+# 依赖与构建产物
+node_modules/
+dist/
+build/
+
+# 本地环境与凭据（绝不入库）
+.env
+.env.local
+*.pem
+*.key
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.vscode/settings.json
+.idea/
+
+# 导出的调用日志（可能含 seekdb password，勿提交）
+wengu-api-logs-*.json
