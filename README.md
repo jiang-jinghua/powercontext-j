@@ -1,3 +1,14 @@
+# OceanBase 2026 大赛 · 团队答案仓库
+
+| 赛题 | 答案位置 | 一句话说明 |
+|------|----------|------------|
+| **Qoder 赛道** · 温故 ReviewMate | 仓库根目录（即本文档） | AI 学习复习助手，seekdb 全文检索 + PowerContext 上下文沉淀 |
+| **Dify 赛道** · 早市风云 · 老王菜摊 | [`dify-zaoshi-fengyun/`](./dify-zaoshi-fengyun/README.md) | Dify Chatflow 砍价游戏，seekdb 充当 Dify 元数据库 + 向量库 + 全文索引 |
+
+> 下面为 Qoder 赛道（温故 ReviewMate）项目说明。
+
+---
+
 # 温故 ReviewMate · AI 学习复习助手
 
 > OceanBase 2026 大赛 Qoder 赛道参赛项目
