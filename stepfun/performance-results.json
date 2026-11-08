@@ -1,0 +1,40 @@
+{
+  "question": "stepfun",
+  "note": "所有数值通过应用内性能面板实测后由『导出 performance-results.json』按钮生成并覆盖本文件（src/main.js btn-export-perf）。methodology 见 README.md 第 5 节。",
+  "environment": {
+    "browser": "Chrome/Edge 最新版",
+    "os": "",
+    "gpu": "",
+    "seekdb": "seekdb server 127.0.0.1:2881"
+  },
+  "quantizationBenchmark": {
+    "columns": ["配置", "模型体积(MB)", "加载耗时(ms)", "embedding 吞吐(chunks/s)", "与 FP32 余弦相似度均值", "Recall@5 对照 FP32"],
+    "rows": [
+      { "config": "all-MiniLM-L6-v2 fp32 / wasm", "values": null },
+      { "config": "all-MiniLM-L6-v2 fp16 / webgpu", "values": null },
+      { "config": "all-MiniLM-L6-v2 q8(INT8) / webgpu", "values": null },
+      { "config": "all-MiniLM-L6-v2 q8(INT8) / wasm", "values": null },
+      { "config": "bge-small-zh-v1.5 q8(INT8) / webgpu", "values": null }
+    ]
+  },
+  "retrievalQuality": {
+    "dataset": "自建中英文混合文档集（段落级，含语义相关但不词面重叠的样本对）",
+    "metrics": {
+      "recallAt5VsFp32Baseline": null,
+      "meanCosineSimilarityDriftFp32ToQ8": null,
+      "hybridVsPureVectorImprovement": null
+    }
+  },
+  "searchLatency": {
+    "columns": ["文档规模(chunks)", "本地查询向量化(ms)", "seekdb 混合检索(ms)", "端到端(ms)"],
+    "rows": [
+      { "chunks": 100, "values": null },
+      { "chunks": 400, "values": null },
+      { "chunks": 800, "values": null }
+    ]
+  },
+  "backendComparison": {
+    "webgpuVsWasmEmbeddingSpeedup": null,
+    "note": "同一文档集分别在 WebGPU 与 WASM 后端导入，记录吞吐对比（性能面板自动记录）"
+  }
+}

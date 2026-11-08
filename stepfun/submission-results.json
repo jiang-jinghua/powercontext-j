@@ -1,0 +1,72 @@
+{
+  "question": "stepfun",
+  "questionId": 600073,
+  "title": "AI 模型量化优化与 seekdb 混合检索 —— 浏览器本地语义搜索",
+  "submission": {
+    "repo": "https://github.com/jiang-jinghua/powercontext-j",
+    "branch": "stepfun-dev",
+    "directory": "stepfun/",
+    "browserEntry": "index.html (Vite root entry, <script type=module src=/src/main.js>)",
+    "runInstructions": [
+      "cd stepfun",
+      "npm install",
+      "npm run dev            # 同时启动本地 seekdb.js 代理 (127.0.0.1:8787) 与 Vite 开发服务器 (127.0.0.1:5173)",
+      "# 浏览器打开 http://localhost:5173",
+      "# 1) 填写 seekdb 连接信息 (默认 127.0.0.1:2881 root/test) 并连接",
+      "# 2) 加载 embedding 模型 (默认 all-MiniLM-L6-v2 INT8/q8, WebGPU 优先自动降级 WASM)",
+      "# 3) 导入 txt/md/pdf 文档或粘贴文本 -> 本地分块 -> 浏览器向量化 -> 写入 seekdb",
+      "# 4) 输入查询 -> 查询向量在浏览器本地生成 -> seekdb 全文+向量混合检索 (RRF 融合)"
+    ]
+  },
+  "capabilities": {
+    "browserLocalInference": {
+      "implemented": true,
+      "stack": ["@huggingface/transformers v3 (Transformers.js)", "ONNX Runtime Web"],
+      "backend": "WebGPU 优先 (navigator.gpu 探测 + requestAdapter)，不可用时自动降级 WASM，并在界面与指标中展示当前后端",
+      "evidence": ["src/embedder.js", "index.html #device-badge"]
+    },
+    "noCloudModelApi": {
+      "implemented": true,
+      "detail": "全流程离线：embedding 推理在浏览器本地执行，不调用任何云端 embedding / OpenAI 兼容接口；模型权重从 HF CDN 下载一次后可离线使用"
+    },
+    "quantization": {
+      "implemented": true,
+      "schemes": ["fp32 (基准)", "fp16", "q8 (INT8 量化)"],
+      "switchable": true,
+      "evidence": ["src/embedder.js (dtype 参数)", "index.html #dtype-select"]
+    },
+    "seekdbStorageAndHybridRetrieval": {
+      "implemented": true,
+      "sdk": "seekdb npm 包 (seekdb.js) via 本地薄代理 server/seekdb-proxy.mjs",
+      "hybridSearch": "collection.hybridSearch({query, knn:{queryEmbeddings}, rank:{rrf:{}}, nResults}) — 全文 + 向量由 seekdb 完成，RRF 融合，前端不做任何自评分/拼接",
+      "vectorsFromBrowser": "写入与查询向量均由浏览器本地模型生成后传入 (embeddings/queryEmbeddings)，Node 侧零推理",
+      "evidence": ["server/seekdb-proxy.mjs", "src/seekdb-client.js"]
+    },
+    "crud": {
+      "duplicateImportSafe": "写入前按 docId 删除旧块 (幂等导入)",
+      "deleteSupported": "collection.delete({where:{docId}})",
+      "rebuildSupported": "重新导入即重建；分块 id = docId#chunkIndex"
+    },
+    "documentSupport": {
+      "formats": ["txt", "md", "pdf (pdfjs-dist 本地解析)"],
+      "languages": ["中文", "英文"],
+      "chunking": "段落感知滑窗分块，可配置目标长度与重叠"
+    },
+    "performanceOptimizations": {
+      "batchEmbedding": true,
+      "contentHashCache": "相同文本不重复计算",
+      "backendSelection": "WebGPU/WASM 可强制切换用于对比测试",
+      "metricsPanel": "界面实时记录加载耗时/吞吐/检索耗时，可导出 performance-results.json"
+    }
+  },
+  "models": [
+    { "id": "all-MiniLM-L6-v2", "repo": "Xenova/all-MiniLM-L6-v2", "dim": 384 },
+    { "id": "bge-small-zh-v1.5", "repo": "Xenova/bge-small-zh-v1.5", "dim": 512 }
+  ],
+  "artifacts": {
+    "submissionResults": "submission-results.json",
+    "complianceResults": "compliance-results.json",
+    "performanceResults": "performance-results.json",
+    "techDoc": "README.md"
+  }
+}

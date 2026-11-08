@@ -1,0 +1,21 @@
+{
+  "name": "stepfun-browser-semantic-search",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Browser-local embedding (Transformers.js + ONNX Runtime Web, WebGPU/WASM, INT8/FP16 quantization) with seekdb hybrid full-text + vector retrieval",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "server": "node server/seekdb-proxy.mjs",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.7.6",
+    "pdfjs-dist": "^4.10.38",
+    "seekdb": "^1.4.0"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5"
+  }
+}

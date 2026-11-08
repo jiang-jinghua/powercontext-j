@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SeekSearch - 浏览器本地语义检索 (Transformers.js + seekdb 混合检索)</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header>
+    <h1>SeekSearch <small>浏览器本地 embedding + seekdb 全文/向量混合检索</small></h1>
+    <div id="device-badge" class="badge">推理后端: 未加载</div>
+  </header>
+
+  <main>
+    <!-- 1. seekdb 连接 -->
+    <section class="card" id="seekdb-card">
+      <h2>1. seekdb 连接</h2>
+      <div class="grid">
+        <label>Host <input id="seekdb-host" value="127.0.0.1" /></label>
+        <label>Port <input id="seekdb-port" value="2881" /></label>
+        <label>User <input id="seekdb-user" value="root" /></label>
+        <label>Password <input id="seekdb-password" type="password" value="" /></label>
+        <label>Database <input id="seekdb-database" value="test" /></label>
+      </div>
+      <button id="btn-connect">连接 seekdb</button>
+      <span id="seekdb-status" class="status"></span>
+      <p class="hint">seekdb 通过本地 seekdb.js 代理访问（server/seekdb-proxy.mjs），向量计算全部在浏览器本地完成，不调用任何云端模型 API。</p>
+    </section>
+
+    <!-- 2. 模型加载 -->
+    <section class="card" id="model-card">
+      <h2>2. 本地 Embedding 模型（Transformers.js + ONNX Runtime Web）</h2>
+      <div class="grid">
+        <label>模型
+          <select id="model-select">
+            <option value="all-MiniLM-L6-v2">all-MiniLM-L6-v2（384维，多语言/英文）</option>
+            <option value="bge-small-zh-v1.5">bge-small-zh-v1.5（512维，中文优化）</option>
+          </select>
+        </label>
+        <label>量化精度
+          <select id="dtype-select">
+            <option value="q8">INT8 (q8 量化，推荐)</option>
+            <option value="fp16">FP16</option>
+            <option value="fp32">FP32（基准）</option>
+          </select>
+        </label>
+        <label>推理后端
+          <select id="device-select">
+            <option value="auto">自动（WebGPU 优先，降级 WASM）</option>
+            <option value="webgpu">强制 WebGPU</option>
+            <option value="wasm">强制 WASM (CPU)</option>
+          </select>
+        </label>
+      </div>
+      <button id="btn-load-model">加载模型</button>
+      <span id="model-status" class="status"></span>
+      <div id="model-info" class="hint"></div>
+    </section>
+
+    <!-- 3. 文档导入 -->
+    <section class="card" id="ingest-card">
+      <h2>3. 文档导入（本地分块 → 浏览器向量化 → 写入 seekdb）</h2>
+      <input type="file" id="file-input" multiple accept=".txt,.md,.pdf" />
+      <div class="grid">
+        <label>分块目标长度（字符）<input id="chunk-size" type="number" value="400" min="100" max="1000" /></label>
+        <label>分块重叠（字符）<input id="chunk-overlap" type="number" value="60" min="0" max="200" /></label>
+        <label>批量大小 <input id="batch-size" type="number" value="16" min="1" max="64" /></label>
+      </div>
+      <textarea id="paste-area" placeholder="或直接粘贴文本内容后点击导入"></textarea>
+      <button id="btn-ingest">导入并向量化</button>
+      <span id="ingest-status" class="status"></span>
+      <div class="progress"><div id="ingest-progress"></div></div>
+      <div id="doc-list" class="doc-list"></div>
+    </section>
+
+    <!-- 4. 混合检索 -->
+    <section class="card" id="search-card">
+      <h2>4. 语义检索（seekdb 全文 + 向量混合检索 / RRF 融合）</h2>
+      <div class="search-row">
+        <input id="query-input" placeholder="输入查询，例如：机器学习 的应用 / vector database performance" />
+        <button id="btn-search">检索</button>
+      </div>
+      <label class="inline"><input id="kw-input" type="text" placeholder="全文过滤关键词（可选，如：seekdb）" /></label>
+      <span id="search-status" class="status"></span>
+      <div id="search-results"></div>
+    </section>
+
+    <!-- 5. 性能指标 -->
+    <section class="card" id="metrics-card">
+      <h2>5. 性能指标（可导出 performance-results.json）</h2>
+      <table id="metrics-table">
+        <thead><tr><th>指标</th><th>数值</th></tr></thead>
+        <tbody id="metrics-body"></tbody>
+      </table>
+      <button id="btn-export-perf">导出 performance-results.json</button>
+    </section>
+  </main>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

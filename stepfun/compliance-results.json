@@ -1,0 +1,55 @@
+{
+  "question": "stepfun",
+  "checkedAt": "2026-11-08",
+  "checks": [
+    {
+      "id": "no-cloud-embedding-api",
+      "desc": "禁止调用云端模型 API（OpenAI 兼容/embedding 服务等）",
+      "status": "pass",
+      "evidence": "grep -rE 'api\\.openai|dashscope|embedding-api|fetch\\(.*api' stepfun/src stepfun/server 无任何云端模型调用；fetch 仅指向本地 /api/rpc 代理 (src/seekdb-client.js)"
+    },
+    {
+      "id": "browser-local-inference",
+      "desc": "embedding 推理完全在浏览器本地 (Transformers.js + ONNX Runtime Web)",
+      "status": "pass",
+      "evidence": "src/embedder.js 使用 @huggingface/transformers pipeline('feature-extraction')；server/seekdb-proxy.mjs 不含任何模型推理代码，仅转发浏览器已算好的向量"
+    },
+    {
+      "id": "wasm-webgpu-backend",
+      "desc": "WebGPU 优先，环境不支持时自动降级 WASM 并提示",
+      "status": "pass",
+      "evidence": "src/embedder.js detectWebGPU(): navigator.gpu + requestAdapter 探测；device=auto 时 webgpu 优先、失败降级 wasm；后端信息展示于 index.html #device-badge"
+    },
+    {
+      "id": "quantization",
+      "desc": "使用 INT8/FP16 量化 ONNX 权重并可切换，与 FP32 基准对比",
+      "status": "pass",
+      "evidence": "src/embedder.js dtype: fp32|fp16|q8(INT8)；界面可切换；对比指标见 performance-results.json"
+    },
+    {
+      "id": "seekdb-does-retrieval",
+      "desc": "检索由 seekdb 完成，不允许前端内存拼接/伪评分混合结果",
+      "status": "pass",
+      "evidence": "server/seekdb-proxy.mjs hybridSearch action 调用 collection.hybridSearch({knn:{queryEmbeddings}, rank:{rrf:{}}})，RRF 融合在 seekdb 内部完成；前端仅渲染返回结果 (src/main.js renderResults)"
+    },
+    {
+      "id": "no-other-database",
+      "desc": "不使用 seekdb 以外的数据库/存储产品承担检索能力",
+      "status": "pass",
+      "evidence": "唯一存储为 seekdb（seekdb npm SDK 连接 seekdb server 2881 端口）；无 sqlite/pg/内存索引"
+    },
+    {
+      "id": "browser-entry",
+      "desc": "存在可运行的浏览器入口",
+      "status": "pass",
+      "evidence": "stepfun/index.html + vite.config.js + npm run dev（scripts/dev.mjs 同时拉起本地代理与 Vite）"
+    },
+    {
+      "id": "dedupe-and-delete",
+      "desc": "重复导入幂等、支持文档删除与重建",
+      "status": "pass",
+      "evidence": "server/seekdb-proxy.mjs addDocs 写入前按 docId 删除旧块；deleteByDoc 使用 collection.delete({where:{docId}})"
+    }
+  ],
+  "summary": { "total": 8, "passed": 8, "failed": 0 }
+}
