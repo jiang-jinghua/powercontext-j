@@ -1,0 +1,1351 @@
+{
+  "task_id": "REQ-2026-011",
+  "task_title": "退款结算：类目排除分摊与尾差规则升级",
+  "spec_version": "2026-11-07T20:00+08:00",
+  "generated_at": "2026-11-08T22:10:44+08:00",
+  "spec_items": [
+    {
+      "code": "SPEC-011-01",
+      "title": "REQ-2026-011 退款结算：类目排除分摊与尾差规则升级 / 4. 规格条目 / SPEC-011-01 优惠分摊支持类目排除",
+      "path": "spec/REQ-2026-011.md",
+      "version": "2026-11-07T20:00+08:00",
+      "chunk_id": "REQ-2026-011#6-d1c897e446b5",
+      "excerpt": "REQ-2026-011 退款结算：类目排除分摊与尾差规则升级 / 4. 规格条目 / SPEC-011-01 优惠分摊支持类目排除\n### SPEC-011-01 优惠分摊支持类目排除\n\n- 优惠券定义新增可选字段 `excluded_categories: list[str]`（缺省 `[]`）。\n- 分摊基数的构成：`gross > 0 且 category ∉ excluded_categories` 的行。\n- 被排除行的分摊额恒为 `0`，其实付等于行应付；原份额按剩余行基数比例重新分摊。\n- 整单口径不变：所有行分摊额之和仍等于待分摊额，整单实付 = `gross_total − 待分摊额`。\n- 边界：若全部行都被排除（或剩余基数合计为 0），则待分摊额不向任何行分摊，不得抛异常；\n  此时待分摊额记为「整单未分摊优惠」`unallocated_discount_cents`，整单实付仍按\n  `paid_total = Σ行实付 + 运费 − 未分摊优惠` 计算，保证整单口径不变。\n- 平台补贴与优惠券共用同一份 `excluded_categories`。"
+    },
+    {
+      "code": "SPEC-011-02",
+      "title": "REQ-2026-011 退款结算：类目排除分摊与尾差规则升级 / 4. 规格条目 / SPEC-011-02 尾差按行轮转分配",
+      "path": "spec/REQ-2026-011.md",
+      "version": "2026-11-07T20:00+08:00",
+      "chunk_id": "REQ-2026-011#7-445fb4bbca8e",
+      "excerpt": "REQ-2026-011 退款结算：类目排除分摊与尾差规则升级 / 4. 规格条目 / SPEC-011-02 尾差按行轮转分配\n### SPEC-011-02 尾差按行轮转分配\n\n- 每行先按 `Fraction(total × basis_i, Σbasis)` 向下取整。\n- 尾差按「1 分/行」逐行分配；顺序为：该行分摊基数降序，基数相同则 `line_no` 升序。\n- 单行尾差补偿上限为 1 分；尾差分配完毕后，各行分摊额之和必须精确等于待分摊额。\n- 该策略替代基线版本的「尾差全部分给单行」，不得保留旧分支。"
+    },
+    {
+      "code": "SPEC-011-03",
+      "title": "REQ-2026-011 退款结算：类目排除分摊与尾差规则升级 / 4. 规格条目 / SPEC-011-03 运费退还判定改为「剩余实付为 0」",
+      "path": "spec/REQ-2026-011.md",
+      "version": "2026-11-07T20:00+08:00",
+      "chunk_id": "REQ-2026-011#8-0e225a95c429",
+      "excerpt": "REQ-2026-011 退款结算：类目排除分摊与尾差规则升级 / 4. 规格条目 / SPEC-011-03 运费退还判定改为「剩余实付为 0」\n### SPEC-011-03 运费退还判定改为「剩余实付为 0」\n\n- 退货后计算剩余实付 = 未退货行的 `paid` 合计。\n- 剩余实付为 0 时退还全额运费；否则运费不退。\n- 全部退货必然满足该条件，故与基线\"整单全退才退运费\"向后兼容。\n- 运费退还额只计入 `shipping_refund_cents`，不摊入任何行。"
+    },
+    {
+      "code": "SPEC-011-04",
+      "title": "REQ-2026-011 退款结算：类目排除分摊与尾差规则升级 / 4. 规格条目 / SPEC-011-04 负金额校验",
+      "path": "spec/REQ-2026-011.md",
+      "version": "2026-11-07T20:00+08:00",
+      "chunk_id": "REQ-2026-011#9-8103a4172129",
+      "excerpt": "REQ-2026-011 退款结算：类目排除分摊与尾差规则升级 / 4. 规格条目 / SPEC-011-04 负金额校验\n### SPEC-011-04 负金额校验\n\n- 分摊完成后，若存在 `paid < 0` 的行，抛 `NegativeAllocationError`，`error_code = E_NEG_ALLOC`，\n  `detail` 至少包含 `order_id`、`line_no`、`paid_cents`。\n- 退款明细计算完成后，若存在 `refund < 0`，抛 `NegativeRefundError`，`error_code = E_NEG_REFUND`。\n- 两个异常均继承自 `RefundAmountError`（再继承 `SettlementError`）。\n- **禁止**用 `max(0, x)` 静默夹断负值：负值代表数据结构或规则冲突，必须显式失败。"
+    },
+    {
+      "code": "SPEC-011-05",
+      "title": "REQ-2026-011 退款结算：类目排除分摊与尾差规则升级 / 4. 规格条目 / SPEC-011-05 退款预览接口",
+      "path": "spec/REQ-2026-011.md",
+      "version": "2026-11-07T20:00+08:00",
+      "chunk_id": "REQ-2026-011#10-9e68a28b4d55",
+      "excerpt": "REQ-2026-011 退款结算：类目排除分摊与尾差规则升级 / 4. 规格条目 / SPEC-011-05 退款预览接口\n### SPEC-011-05 退款预览接口\n\n- 新增 `engine.preview_refund(order, returned_line_nos) -> RefundResult`：内部完成结算 + 退款计算，\n  调用方无需先持有 `Settlement`。\n- 新增 `service.preview_refund_file(path, returned_line_nos) -> dict`。\n- 新增 CLI 子命令：`python -m settlement.cli preview --order <path> --return 1,2`，输出 JSON 与 `refund` 子命令同构。\n- 预览为只读操作：不写库、不改订单状态、不产生副作用。\n- 预览结果必须与\"先 `settle` 再 `refund`\"的结果逐字段一致。"
+    }
+  ],
+  "code_refs": [
+    {
+      "path": "src/settlement/allocation.py",
+      "symbol": "allocation",
+      "chunk_id": "allocation#0-ca1bef1c6ca8",
+      "score": 4.2588,
+      "excerpt": "\"\"\"金额分摊。\n\n规则（基线版本）：\n1. 以各行应付金额为权重，按比例把待分摊总额拆到行上；\n2. 比例计算使用 :class:`fractions.Fraction`，保证不引入浮点误差；\n3. 每行先向下取整，剩余的分（尾差）一次性给\"权重最大\"的行，\n   权重相同则给 line_no 最小的行。\n\n该模块被 engine.settle 复用，退款金额完全由这里的分摊结果推导，\n因此分摊正确性直接决定退款正确性。\n\"\"\"\n\nfrom __future__ import annotations\n\nfrom fractions import Fraction\nfrom typing import Iterable, Sequence\n\nfrom .errors import AllocationError\n\n\ndef normalize_basis(basis: Iterable[tuple[int, int]]) -> list[tuple[int, int]]:\n    \"\"\"校验并规范化分摊基数：[(line_no, weight_cents)]。\"\"\"\n    rows: list[tuple[int, int]] = []\n    for line_no, weight in basis:\n        if weight < 0:"
+    },
+    {
+      "path": "src/settlement/allocation.py",
+      "symbol": "allocate",
+      "chunk_id": "allocation#2-2bd64bd8ec14",
+      "score": 3.6,
+      "excerpt": "def allocate(total_cents: int, basis: Sequence[tuple[int, int]]) -> dict[int, int]:\n    \"\"\"把 ``total_cents`` 按 ``basis`` 权重分摊，返回 {line_no: 分摊额}。\n\n    返回值的和严格等于 ``total_cents``。\n    \"\"\"\n    if total_cents < 0:\n        raise AllocationError(\"待分摊金额不能为负\", {\"total_cents\": total_cents})\n    rows = normalize_basis(basis)\n    weight_sum = sum(w for _, w in rows)\n\n    floors: dict[int, int] = {}\n    for line_no, weight in rows:\n        exact = Fraction(total_cents * weight, weight_sum)\n        floors[line_no] = exact.numerator // exact.denominator\n\n    remainder = total_cents - sum(floors.values())\n    if remainder:\n        # 尾差：全部给权重最大的行（权重相同取 line_no 小者）\n        target = max(rows, key=lambda r: (r[1], -r[0]))[0]\n        floors[target] += remainder\n    return floors"
+    },
+    {
+      "path": "src/settlement/money.py",
+      "symbol": "money",
+      "chunk_id": "money#0-d0b6952f95c3",
+      "score": 3.5275,
+      "excerpt": "\"\"\"金额工具：内部统一使用“分”（int），禁止浮点参与结算。\n\n对外展示时才转成人民币字符串。浮点只在分摊比例计算中出现，\n且必须经由 :class:`fractions.Fraction` 精确化。\n\"\"\"\n\nfrom __future__ import annotations\n\nfrom decimal import ROUND_HALF_UP, Decimal\n\n\ndef yuan_to_cents(text: str | int | float | Decimal) -> int:\n    \"\"\"把元金额（如 \"1299.00\"）转成分，四舍五入到分。\"\"\"\n    value = Decimal(str(text))\n    return int((value * 100).quantize(Decimal(\"1\"), rounding=ROUND_HALF_UP))\n\n\ndef cents_to_yuan(cents: int) -> str:\n    \"\"\"把分转成两位小数的元字符串。\"\"\"\n    return f\"{Decimal(cents) / Decimal(100):.2f}\"\n\n\ndef sum_cents(values) -> int:\n    \"\"\"对一组分求和，保持 int 语义。\"\"\"\n    total = 0"
+    },
+    {
+      "path": "src/settlement/models.py",
+      "symbol": "Coupon",
+      "chunk_id": "models#3-4d5e5f667bc5",
+      "score": 3.5235,
+      "excerpt": "class Coupon:\n    \"\"\"优惠券。当前仅支持满减（amount）与折扣（percent）两种。\"\"\"\n\n    code: str\n    type: str\n    value: int\n    min_spend_cents: int = 0\n\n    def discount_cents(self, gross_cents: int) -> int:\n        \"\"\"按券面规则计算优惠金额（不含分摊）。\"\"\"\n        if gross_cents < self.min_spend_cents:\n            return 0\n        if self.type == \"amount\":\n            return min(self.value, gross_cents)\n        if self.type == \"percent\":\n            # value 表示折扣百分比，例如 88 表示打 8.8 折\n            off = gross_cents * (100 - self.value) // 100\n            return max(0, min(off, gross_cents))\n        raise ValueError(f\"unknown coupon type: {self.type}\")"
+    },
+    {
+      "path": "src/settlement/validators.py",
+      "symbol": "validate_order",
+      "chunk_id": "validators#1-93599e3d5991",
+      "score": 3.4647,
+      "excerpt": "def validate_order(order: Order) -> None:\n    \"\"\"订单级校验：行号唯一、数量与单价合法、优惠券类型合法。\"\"\"\n    if not order.items:\n        raise ValidationError(\"订单没有任何行项目\", {\"order_id\": order.order_id})\n\n    seen: set[int] = set()\n    for it in order.items:\n        if it.line_no <= 0:\n            raise ValidationError(\"line_no 必须为正整数\", {\"line_no\": it.line_no})\n        if it.line_no in seen:\n            raise ValidationError(\"line_no 重复\", {\"line_no\": it.line_no})\n        seen.add(it.line_no)\n        if it.qty <= 0:\n            raise ValidationError(\n                \"数量必须为正整数\", {\"line_no\": it.line_no, \"qty\": it.qty}\n            )\n        if it.unit_price_cents < 0:\n            raise ValidationError(\n                \"单价不能为负\", {\"line_no\": it.line_no, \"unit\": it.unit_price_cents}\n            )\n    if order.platform_subsidy_cents < 0:\n        raise ValidationError(\n            \"平台补贴不能为负\", {\"subsidy\": order.platform_subsidy_cents}\n        )\n    if order.shipping_fee_cents < 0:\n        raise ValidationError(\"运费不能为负\", {\"shipping\": order.shipping_fee_cents})\n    if order.coupon and order.coupon.type not in (\"amount\", \"percent\"):\n        raise ValidationError(\n            \"不支持的优惠券类型\", {\"type\": order.coupon.type, \"code\": order.coupon.code}\n        )"
+    },
+    {
+      "path": "src/settlement/engine.py",
+      "symbol": "refund",
+      "chunk_id": "engine#3-e0482a733338",
+      "score": 3.4412,
+      "excerpt": "def refund(\n    order: Order,\n    settlement: Settlement,\n    returned_line_nos: Sequence[int] | Iterable[int],\n) -> RefundResult:\n    \"\"\"按已结算结果计算部分退货的退款金额。\n\n    规则（基线版本）：\n    - 退货行的退款额 = 该行实付金额；\n    - 运费仅在\"整单全部退货\"时退还。\n    \"\"\"\n    returned = validate_return_lines(order, returned_line_nos)\n    lines = [\n        RefundLine(\n            line_no=ln,\n            sku=order.item(ln).sku,\n            refund_cents=settlement.line(ln).paid_cents,\n        )\n        for ln in returned\n    ]\n    all_returned = set(returned) == set(order.line_nos)\n    shipping = order.shipping_fee_cents if all_returned else 0\n    if not lines:\n        raise RefundError(\"退货行不能为空\", {\"order_id\": order.order_id})\n    return RefundResult(\n        order_id=order.order_id,\n        returned_line_nos=tuple(returned),\n        lines=lines,\n        shipping_refund_cents=shipping,\n    )"
+    },
+    {
+      "path": "src/settlement/__init__.py",
+      "symbol": "__init__",
+      "chunk_id": "__init__#0-67a77019c70b",
+      "score": 3.4392,
+      "excerpt": "\"\"\"订单退款结算引擎。\n\n模块职责：\n- models    领域模型（订单 / 行项目 / 优惠券 / 结算结果）\n- allocation 金额分摊（按权重比例 + 尾差处理）\n- engine    结算与退款预览主流程\n- validators 输入与结果校验\n- service   面向调用方的服务层（加载 JSON、输出可序列化结果）\n- cli       命令行入口（settle / refund）\n\"\"\"\n\n__all__ = [\"__version__\"]\n__version__ = \"1.4.0\""
+    },
+    {
+      "path": "src/settlement/cli.py",
+      "symbol": "cli",
+      "chunk_id": "cli#0-c9dc735f67e8",
+      "score": 3.3059,
+      "excerpt": "\"\"\"业务命令行入口。\n\n用法：\n    python -m settlement.cli settle --order tests/fixtures/order_standard.json\n    python -m settlement.cli refund --order tests/fixtures/order_standard.json --return 1,2\n\n输出统一为 JSON（stdout），错误为 {\"error_code\": ..., \"message\": ...} 且退出码 2。\n\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nimport sys\n\nfrom . import service\nfrom .errors import SettlementError\n\n\ndef _parse_lines(raw: str) -> list[int]:\n    return [int(x) for x in raw.replace(\" \", \"\").split(\",\") if x]\n\n\ndef build_parser() -> argparse.ArgumentParser:\n    parser = argparse.ArgumentParser("
+    },
+    {
+      "path": "src/settlement/allocation.py",
+      "symbol": "normalize_basis",
+      "chunk_id": "allocation#1-61a8afd43c7e",
+      "score": 3.2647,
+      "excerpt": "def normalize_basis(basis: Iterable[tuple[int, int]]) -> list[tuple[int, int]]:\n    \"\"\"校验并规范化分摊基数：[(line_no, weight_cents)]。\"\"\"\n    rows: list[tuple[int, int]] = []\n    for line_no, weight in basis:\n        if weight < 0:\n            raise AllocationError(\n                \"分摊基数不能为负\", {\"line_no\": line_no, \"weight_cents\": weight}\n            )\n        rows.append((int(line_no), int(weight)))\n    if not rows:\n        raise AllocationError(\"分摊基数为空\")\n    if sum(w for _, w in rows) == 0:\n        raise AllocationError(\n            \"分摊基数总和为 0，无法按比例分摊\",\n            {\"line_nos\": [ln for ln, _ in rows]},\n        )\n    return rows"
+    },
+    {
+      "path": "src/settlement/models.py",
+      "symbol": "Coupon.discount_cents",
+      "chunk_id": "models#4-50431fa407d8",
+      "score": 2.9647,
+      "excerpt": "def discount_cents(self, gross_cents: int) -> int:\n        \"\"\"按券面规则计算优惠金额（不含分摊）。\"\"\"\n        if gross_cents < self.min_spend_cents:\n            return 0\n        if self.type == \"amount\":\n            return min(self.value, gross_cents)\n        if self.type == \"percent\":\n            # value 表示折扣百分比，例如 88 表示打 8.8 折\n            off = gross_cents * (100 - self.value) // 100\n            return max(0, min(off, gross_cents))\n        raise ValueError(f\"unknown coupon type: {self.type}\")"
+    },
+    {
+      "path": "src/settlement/cli.py",
+      "symbol": "build_parser",
+      "chunk_id": "cli#2-138f3ad81c81",
+      "score": 2.9471,
+      "excerpt": "def build_parser() -> argparse.ArgumentParser:\n    parser = argparse.ArgumentParser(\n        prog=\"settlement\", description=\"订单退款结算引擎 CLI\"\n    )\n    sub = parser.add_subparsers(dest=\"command\", required=True)\n\n    p_settle = sub.add_parser(\"settle\", help=\"结算整单，输出每行实付金额\")\n    p_settle.add_argument(\"--order\", required=True, help=\"订单 JSON 路径\")\n\n    p_refund = sub.add_parser(\"refund\", help=\"计算部分退货的退款金额\")\n    p_refund.add_argument(\"--order\", required=True, help=\"订单 JSON 路径\")\n    p_refund.add_argument(\"--return\", dest=\"returned\", required=True, help=\"退货行号，逗号分隔\")\n\n    return parser"
+    },
+    {
+      "path": "src/settlement/engine.py",
+      "symbol": "settle",
+      "chunk_id": "engine#2-c4f34cc72e74",
+      "score": 2.9235,
+      "excerpt": "def settle(order: Order) -> Settlement:\n    \"\"\"结算整单：计算每行实付金额。\n\n    待分摊总额 = 优惠券金额 + 平台补贴，按行应付金额比例分摊。\n    \"\"\"\n    validate_order(order)\n    gross_total = order.gross_cents\n\n    coupon_discount = order.coupon.discount_cents(gross_total) if order.coupon else 0\n    subsidy = order.platform_subsidy_cents\n    to_allocate = coupon_discount + subsidy\n\n    allocated = allocate(to_allocate, [(it.line_no, it.gross_cents) for it in order.items])\n    verify_total(to_allocate, allocated)\n\n    lines = [\n        SettledLine(\n            line_no=it.line_no,\n            sku=it.sku,\n            category=it.category,\n            gross_cents=it.gross_cents,\n            discount_cents=allocated[it.line_no],\n            paid_cents=it.gross_cents - allocated[it.line_no],\n        )\n        for it in order.items\n    ]\n    return Settlement(\n        order_id=order.order_id,\n        gross_cents=gross_total,\n        coupon_discount_cents=coupon_discount,\n        subsidy_cents=subsidy,\n        shipping_fee_cents=order.shipping_fee_cents,\n        paid_total_cents=sum(ln.paid_cents for ln in lines) + order.shipping_fee_cents,\n        lines=lines,\n    )"
+    },
+    {
+      "path": "src/settlement/allocation.py",
+      "symbol": "verify_total",
+      "chunk_id": "allocation#3-8fd43d571bd4",
+      "score": 1.9818,
+      "excerpt": "def verify_total(total_cents: int, allocated: dict[int, int]) -> None:\n    \"\"\"自检：分摊结果必须与待分摊金额一致。\"\"\"\n    got = sum(allocated.values())\n    if got != total_cents:\n        raise AllocationError(\n            \"分摊结果与待分摊金额不一致\",\n            {\"expected_cents\": total_cents, \"got_cents\": got, \"allocated\": allocated},\n        )"
+    },
+    {
+      "path": "src/settlement/errors.py",
+      "symbol": "errors",
+      "chunk_id": "errors#0-2ad2bc63c949",
+      "score": 1.2091,
+      "excerpt": "\"\"\"结算引擎异常定义。\n\n所有业务异常都带稳定的错误码（error_code），便于上游/测试断言。\n错误码规范：E_ + 大写短名，写入文档 docs/errors.md 后方可新增。\n\"\"\"\n\nfrom __future__ import annotations\n\n\nclass SettlementError(Exception):\n    \"\"\"结算领域基础异常。\n\n    Attributes:\n        code: 稳定错误码，例如 ``E_BAD_INPUT``。\n        detail: 可序列化的上下文信息，随异常一起上报。\n    \"\"\"\n\n    code = \"E_SETTLEMENT\"\n\n    def __init__(self, message: str, detail: dict | None = None) -> None:\n        super().__init__(message)\n        self.message = message\n        self.detail = detail or {}\n\n    def to_dict(self) -> dict:"
+    },
+    {
+      "path": "src/settlement/validators.py",
+      "symbol": "validators",
+      "chunk_id": "validators#0-8bcd149732ee",
+      "score": 0.8364,
+      "excerpt": "\"\"\"输入与结果校验。\n\n校验失败一律抛 ValidationError，错误码稳定可断言。\n\"\"\"\n\nfrom __future__ import annotations\n\nfrom typing import Iterable, Sequence\n\nfrom .errors import RefundError, ValidationError\nfrom .models import Order\n\n\ndef validate_order(order: Order) -> None:\n    \"\"\"订单级校验：行号唯一、数量与单价合法、优惠券类型合法。\"\"\"\n    if not order.items:\n        raise ValidationError(\"订单没有任何行项目\", {\"order_id\": order.order_id})\n\n    seen: set[int] = set()\n    for it in order.items:\n        if it.line_no <= 0:\n            raise ValidationError(\"line_no 必须为正整数\", {\"line_no\": it.line_no})\n        if it.line_no in seen:\n            raise ValidationError(\"line_no 重复\", {\"line_no\": it.line_no})\n        seen.add(it.line_no)"
+    }
+  ],
+  "test_refs": [
+    {
+      "path": "tests/acceptance/test_req_2026_011.py",
+      "symbol": "test_spec_011_01_excluded_category_gets_no_allocation",
+      "chunk_id": "test_req_2026_011#3-d2ee1ae25eee",
+      "score": 4.3128,
+      "excerpt": "def test_spec_011_01_excluded_category_gets_no_allocation():\n    \"\"\"SPEC-011-01：被排除类目分摊额为 0，份额按剩余行基数重分配，整单口径不变。\"\"\"\n    result = settle(load(\"order_excluded_gift.json\"))\n    got = [(ln.discount_cents, ln.paid_cents) for ln in result.lines]\n    assert got == [(10417, 89583), (2083, 17917), (0, 5000)]\n    assert result.paid_total_cents == 112500 + 1200\n    assert result.unallocated_discount_cents == 0"
+    },
+    {
+      "path": "tests/acceptance/test_req_2026_011.py",
+      "symbol": "test_spec_011_01_all_categories_excluded_keeps_gross",
+      "chunk_id": "test_req_2026_011#4-05283d09787a",
+      "score": 4.1851,
+      "excerpt": "def test_spec_011_01_all_categories_excluded_keeps_gross():\n    \"\"\"SPEC-011-01 边界：全部行被排除时不抛异常，待分摊额记为整单未分摊优惠。\"\"\"\n    payload = raw(\"order_excluded_gift.json\")\n    payload[\"coupon\"][\"excluded_categories\"] = [\"digital\", \"book\", \"gift\"]\n    result = settle(build_order(payload))\n    assert [ln.discount_cents for ln in result.lines] == [0, 0, 0]\n    assert [ln.paid_cents for ln in result.lines] == [100000, 20000, 5000]\n    assert result.unallocated_discount_cents == 10000 + 2500\n    assert result.paid_total_cents == 125000 - 12500 + 1200"
+    },
+    {
+      "path": "tests/acceptance/test_req_2026_011.py",
+      "symbol": "test_spec_011_01_percent_coupon_respects_exclusions",
+      "chunk_id": "test_req_2026_011#5-e004a99df535",
+      "score": 3.8213,
+      "excerpt": "def test_spec_011_01_percent_coupon_respects_exclusions():\n    \"\"\"SPEC-011-01：折扣券（percent）与满减共用同一套类目排除语义。\"\"\"\n    payload = raw(\"order_excluded_gift.json\")\n    payload[\"coupon\"] = {\n        \"code\": \"CPN_PCT\",\n        \"type\": \"percent\",\n        \"value\": 88,\n        \"min_spend_cents\": 0,\n        \"excluded_categories\": [\"gift\"],\n    }\n    result = settle(build_order(payload))\n    assert result.coupon_discount_cents == 15000\n    # 待分摊额 = 券 15000 + 平台补贴 2500 = 17500，全部落在未排除的两行上\n    assert [(ln.discount_cents, ln.paid_cents) for ln in result.lines] == [\n        (14584, 85416),\n        (2916, 17084),\n        (0, 5000),\n    ]"
+    },
+    {
+      "path": "tests/acceptance/test_req_2026_011.py",
+      "symbol": "test_spec_011_03_shipping_refunded_when_remaining_paid_is_zero",
+      "chunk_id": "test_req_2026_011#8-3779bffc852b",
+      "score": 3.7851,
+      "excerpt": "def test_spec_011_03_shipping_refunded_when_remaining_paid_is_zero():\n    \"\"\"SPEC-011-03：退货后剩余实付为 0 时退还全额运费。\"\"\"\n    order = load(\"order_fullpay.json\")\n    settlement = settle(order)\n    assert [ln.paid_cents for ln in settlement.lines] == [0, 0, 0]\n    result = refund(order, settlement, [1, 2])\n    assert result.shipping_refund_cents == 1200\n    assert result.refund_total_cents == 1200"
+    },
+    {
+      "path": "tests/acceptance/test_req_2026_011.py",
+      "symbol": "test_spec_011_04_negative_allocation_raises",
+      "chunk_id": "test_req_2026_011#10-6942f591b5fd",
+      "score": 3.7489,
+      "excerpt": "def test_spec_011_04_negative_allocation_raises():\n    \"\"\"SPEC-011-04：分摊后行实付为负必须显式失败（E_NEG_ALLOC），不得静默夹断。\"\"\"\n    with pytest.raises(NegativeAllocationError) as exc:\n        settle(load(\"order_negative.json\"))\n    assert exc.value.code == \"E_NEG_ALLOC\"\n    assert exc.value.detail[\"line_no\"] == 2\n    assert exc.value.detail[\"paid_cents\"] == -30000"
+    },
+    {
+      "path": "tests/acceptance/test_req_2026_011.py",
+      "symbol": "test_spec_011_05_preview_service_and_cli",
+      "chunk_id": "test_req_2026_011#13-69526c5bae49",
+      "score": 3.6787,
+      "excerpt": "def test_spec_011_05_preview_service_and_cli():\n    \"\"\"SPEC-011-05：服务层与 CLI 都提供预览入口，且只读无副作用。\"\"\"\n    assert (\n        service.preview_refund_file(FIXTURES / \"order_excluded_gift.json\", [3])[\"refund_total_cents\"]\n        == 5000\n    )\n\n    env = dict(os.environ)\n    env[\"PYTHONPATH\"] = str(SRC) + os.pathsep + env.get(\"PYTHONPATH\", \"\")\n    proc = subprocess.run(\n        [\n            sys.executable,\n            \"-m\",\n            \"settlement.cli\",\n            \"preview\",\n            \"--order\",\n            str(FIXTURES / \"order_excluded_gift.json\"),\n            \"--return\",\n            \"1,3\",\n        ],\n        capture_output=True,\n        text=True,\n        env=env,\n        check=False,\n    )\n    assert proc.returncode == 0, proc.stderr\n    payload = json.loads(proc.stdout)\n    assert payload[\"refund_total_cents\"] == 89583 + 5000"
+    },
+    {
+      "path": "tests/acceptance/test_req_2026_011.py",
+      "symbol": "test_spec_011_02_tail_order_fixture",
+      "chunk_id": "test_req_2026_011#7-1f836dffaf82",
+      "score": 3.6574,
+      "excerpt": "def test_spec_011_02_tail_order_fixture():\n    \"\"\"SPEC-011-02：端到端验证尾差轮转后的行实付，行和等于整单实付。\"\"\"\n    result = settle(load(\"order_tail.json\"))\n    assert [ln.discount_cents for ln in result.lines] == [3334, 3334, 3333]\n    assert [ln.paid_cents for ln in result.lines] == [6666, 6666, 6667]\n    assert result.paid_total_cents == 30000 - 10001"
+    },
+    {
+      "path": "tests/acceptance/test_req_2026_012.py",
+      "symbol": "test_spec_011_06_cli_output_contains_field",
+      "chunk_id": "test_req_2026_012#5-55e39e2d5440",
+      "score": 3.4936,
+      "excerpt": "def test_spec_011_06_cli_output_contains_field():\n    \"\"\"SPEC-011-06：CLI 输出包含 remaining_paid_cents，且不影响退款总额。\"\"\"\n    env = dict(os.environ)\n    env[\"PYTHONPATH\"] = str(SRC) + os.pathsep + env.get(\"PYTHONPATH\", \"\")\n    proc = subprocess.run(\n        [\n            sys.executable,\n            \"-m\",\n            \"settlement.cli\",\n            \"refund\",\n            \"--order\",\n            str(FIXTURES / \"order_standard.json\"),\n            \"--return\",\n            \"1,2\",\n        ],\n        capture_output=True,\n        text=True,\n        env=env,\n        check=False,\n    )\n    assert proc.returncode == 0, proc.stderr\n    payload = json.loads(proc.stdout)\n    assert payload[\"remaining_paid_cents\"] == 4500\n    assert payload[\"refund_total_cents\"] == 90000 + 18000"
+    },
+    {
+      "path": "tests/acceptance/test_req_2026_011.py",
+      "symbol": "test_spec_011_04_negative_refund_raises",
+      "chunk_id": "test_req_2026_011#11-43c442991e1c",
+      "score": 2.4444,
+      "excerpt": "def test_spec_011_04_negative_refund_raises():\n    \"\"\"SPEC-011-04：退款明细为负必须抛 E_NEG_REFUND。\"\"\"\n    with pytest.raises(NegativeRefundError) as exc:\n        validate_refund_amounts(\"SO1\", [RefundLine(line_no=1, sku=\"SKU-A\", refund_cents=-1)])\n    assert exc.value.code == \"E_NEG_REFUND\""
+    },
+    {
+      "path": "tests/acceptance/test_req_2026_011.py",
+      "symbol": "test_spec_011_03_shipping_not_refunded_when_remaining_paid_left",
+      "chunk_id": "test_req_2026_011#9-65396fce96ec",
+      "score": 2.2444,
+      "excerpt": "def test_spec_011_03_shipping_not_refunded_when_remaining_paid_left():\n    \"\"\"SPEC-011-03：仍有剩余实付时不退运费（与基线行为一致）。\"\"\"\n    order = load(\"order_standard.json\")\n    result = refund(order, settle(order), [1, 2])\n    assert result.shipping_refund_cents == 0"
+    }
+  ],
+  "state": {
+    "done": [],
+    "todo": [
+      "SPEC-011-06（规格 v2 追加）：退款结果增加剩余实付字段"
+    ],
+    "risks": [
+      "BACKLOG-311 多次部分退货的累积对账未覆盖",
+      "BACKLOG-312 折扣券 + 类目排除缺少专项用例"
+    ],
+    "parent_handoff": ""
+  },
+  "files": [
+    {
+      "path": "src/settlement/allocation.py",
+      "bytes": 2601,
+      "truncated": false,
+      "text": "\"\"\"金额分摊。\n\n规则（基线版本）：\n1. 以各行应付金额为权重，按比例把待分摊总额拆到行上；\n2. 比例计算使用 :class:`fractions.Fraction`，保证不引入浮点误差；\n3. 每行先向下取整，剩余的分（尾差）一次性给\"权重最大\"的行，\n   权重相同则给 line_no 最小的行。\n\n该模块被 engine.settle 复用，退款金额完全由这里的分摊结果推导，\n因此分摊正确性直接决定退款正确性。\n\"\"\"\n\nfrom __future__ import annotations\n\nfrom fractions import Fraction\nfrom typing import Iterable, Sequence\n\nfrom .errors import AllocationError\n\n\ndef normalize_basis(basis: Iterable[tuple[int, int]]) -> list[tuple[int, int]]:\n    \"\"\"校验并规范化分摊基数：[(line_no, weight_cents)]。\"\"\"\n    rows: list[tuple[int, int]] = []\n    for line_no, weight in basis:\n        if weight < 0:\n            raise AllocationError(\n                \"分摊基数不能为负\", {\"line_no\": line_no, \"weight_cents\": weight}\n            )\n        rows.append((int(line_no), int(weight)))\n    if not rows:\n        raise AllocationError(\"分摊基数为空\")\n    if sum(w for _, w in rows) == 0:\n        raise AllocationError(\n            \"分摊基数总和为 0，无法按比例分摊\",\n            {\"line_nos\": [ln for ln, _ in rows]},\n        )\n    return rows\n\n\ndef allocate(total_cents: int, basis: Sequence[tuple[int, int]]) -> dict[int, int]:\n    \"\"\"把 ``total_cents`` 按 ``basis`` 权重分摊，返回 {line_no: 分摊额}。\n\n    返回值的和严格等于 ``total_cents``。\n    \"\"\"\n    if total_cents < 0:\n        raise AllocationError(\"待分摊金额不能为负\", {\"total_cents\": total_cents})\n    rows = normalize_basis(basis)\n    weight_sum = sum(w for _, w in rows)\n\n    floors: dict[int, int] = {}\n    for line_no, weight in rows:\n        exact = Fraction(total_cents * weight, weight_sum)\n        floors[line_no] = exact.numerator // exact.denominator\n\n    remainder = total_cents - sum(floors.values())\n    if remainder:\n        # 尾差：全部给权重最大的行（权重相同取 line_no 小者）\n        target = max(rows, key=lambda r: (r[1], -r[0]))[0]\n        floors[target] += remainder\n    return floors\n\n\ndef verify_total(total_cents: int, allocated: dict[int, int]) -> None:\n    \"\"\"自检：分摊结果必须与待分摊金额一致。\"\"\"\n    got = sum(allocated.values())\n    if got != total_cents:\n        raise AllocationError(\n            \"分摊结果与待分摊金额不一致\",\n            {\"expected_cents\": total_cents, \"got_cents\": got, \"allocated\": allocated},\n        )\n"
+    },
+    {
+      "path": "src/settlement/engine.py",
+      "bytes": 3624,
+      "truncated": false,
+      "text": "\"\"\"结算与退款主流程。\"\"\"\n\nfrom __future__ import annotations\n\nfrom typing import Iterable, Sequence\n\nfrom .allocation import allocate, verify_total\nfrom .errors import RefundError\nfrom .models import (\n    Coupon,\n    Order,\n    OrderItem,\n    RefundLine,\n    RefundResult,\n    SettledLine,\n    Settlement,\n)\nfrom .validators import validate_order, validate_return_lines\n\n\ndef build_order(payload: dict) -> Order:\n    \"\"\"从 JSON 字典构造订单（不做业务校验，校验在 engine 入口做）。\"\"\"\n    items = tuple(\n        OrderItem(\n            line_no=int(raw[\"line_no\"]),\n            sku=str(raw[\"sku\"]),\n            category=str(raw.get(\"category\", \"default\")),\n            unit_price_cents=int(raw[\"unit_price_cents\"]),\n            qty=int(raw.get(\"qty\", 1)),\n        )\n        for raw in payload[\"items\"]\n    )\n    coupon_raw = payload.get(\"coupon\")\n    coupon = (\n        Coupon(\n            code=str(coupon_raw[\"code\"]),\n            type=str(coupon_raw[\"type\"]),\n            value=int(coupon_raw[\"value\"]),\n            min_spend_cents=int(coupon_raw.get(\"min_spend_cents\", 0)),\n        )\n        if coupon_raw\n        else None\n    )\n    return Order(\n        order_id=str(payload[\"order_id\"]),\n        items=items,\n        coupon=coupon,\n        platform_subsidy_cents=int(payload.get(\"platform_subsidy_cents\", 0)),\n        shipping_fee_cents=int(payload.get(\"shipping_fee_cents\", 0)),\n    )\n\n\ndef settle(order: Order) -> Settlement:\n    \"\"\"结算整单：计算每行实付金额。\n\n    待分摊总额 = 优惠券金额 + 平台补贴，按行应付金额比例分摊。\n    \"\"\"\n    validate_order(order)\n    gross_total = order.gross_cents\n\n    coupon_discount = order.coupon.discount_cents(gross_total) if order.coupon else 0\n    subsidy = order.platform_subsidy_cents\n    to_allocate = coupon_discount + subsidy\n\n    allocated = allocate(to_allocate, [(it.line_no, it.gross_cents) for it in order.items])\n    verify_total(to_allocate, allocated)\n\n    lines = [\n        SettledLine(\n            line_no=it.line_no,\n            sku=it.sku,\n            category=it.category,\n            gross_cents=it.gross_cents,\n            discount_cents=allocated[it.line_no],\n            paid_cents=it.gross_cents - allocated[it.line_no],\n        )\n        for it in order.items\n    ]\n    return Settlement(\n        order_id=order.order_id,\n        gross_cents=gross_total,\n        coupon_discount_cents=coupon_discount,\n        subsidy_cents=subsidy,\n        shipping_fee_cents=order.shipping_fee_cents,\n        paid_total_cents=sum(ln.paid_cents for ln in lines) + order.shipping_fee_cents,\n        lines=lines,\n    )\n\n\ndef refund(\n    order: Order,\n    settlement: Settlement,\n    returned_line_nos: Sequence[int] | Iterable[int],\n) -> RefundResult:\n    \"\"\"按已结算结果计算部分退货的退款金额。\n\n    规则（基线版本）：\n    - 退货行的退款额 = 该行实付金额；\n    - 运费仅在\"整单全部退货\"时退还。\n    \"\"\"\n    returned = validate_return_lines(order, returned_line_nos)\n    lines = [\n        RefundLine(\n            line_no=ln,\n            sku=order.item(ln).sku,\n            refund_cents=settlement.line(ln).paid_cents,\n        )\n        for ln in returned\n    ]\n    all_returned = set(returned) == set(order.line_nos)\n    shipping = order.shipping_fee_cents if all_returned else 0\n    if not lines:\n        raise RefundError(\"退货行不能为空\", {\"order_id\": order.order_id})\n    return RefundResult(\n        order_id=order.order_id,\n        returned_line_nos=tuple(returned),\n        lines=lines,\n        shipping_refund_cents=shipping,\n    )\n"
+    },
+    {
+      "path": "src/settlement/validators.py",
+      "bytes": 2260,
+      "truncated": false,
+      "text": "\"\"\"输入与结果校验。\n\n校验失败一律抛 ValidationError，错误码稳定可断言。\n\"\"\"\n\nfrom __future__ import annotations\n\nfrom typing import Iterable, Sequence\n\nfrom .errors import RefundError, ValidationError\nfrom .models import Order\n\n\ndef validate_order(order: Order) -> None:\n    \"\"\"订单级校验：行号唯一、数量与单价合法、优惠券类型合法。\"\"\"\n    if not order.items:\n        raise ValidationError(\"订单没有任何行项目\", {\"order_id\": order.order_id})\n\n    seen: set[int] = set()\n    for it in order.items:\n        if it.line_no <= 0:\n            raise ValidationError(\"line_no 必须为正整数\", {\"line_no\": it.line_no})\n        if it.line_no in seen:\n            raise ValidationError(\"line_no 重复\", {\"line_no\": it.line_no})\n        seen.add(it.line_no)\n        if it.qty <= 0:\n            raise ValidationError(\n                \"数量必须为正整数\", {\"line_no\": it.line_no, \"qty\": it.qty}\n            )\n        if it.unit_price_cents < 0:\n            raise ValidationError(\n                \"单价不能为负\", {\"line_no\": it.line_no, \"unit\": it.unit_price_cents}\n            )\n    if order.platform_subsidy_cents < 0:\n        raise ValidationError(\n            \"平台补贴不能为负\", {\"subsidy\": order.platform_subsidy_cents}\n        )\n    if order.shipping_fee_cents < 0:\n        raise ValidationError(\"运费不能为负\", {\"shipping\": order.shipping_fee_cents})\n    if order.coupon and order.coupon.type not in (\"amount\", \"percent\"):\n        raise ValidationError(\n            \"不支持的优惠券类型\", {\"type\": order.coupon.type, \"code\": order.coupon.code}\n        )\n\n\ndef validate_return_lines(order: Order, returned_line_nos: Sequence[int] | Iterable[int]) -> list[int]:\n    \"\"\"退货行校验：去重、保序、必须存在。\"\"\"\n    result: list[int] = []\n    for ln in returned_line_nos:\n        ln = int(ln)\n        if ln in result:\n            continue\n        if ln not in order.line_nos:\n            raise RefundError(\n                \"退货行号不在订单中\", {\"line_no\": ln, \"order_id\": order.order_id}\n            )\n        result.append(ln)\n    if not result:\n        raise RefundError(\"退货行不能为空\", {\"order_id\": order.order_id})\n    return result\n"
+    },
+    {
+      "path": "src/settlement/errors.py",
+      "bytes": 1160,
+      "truncated": false,
+      "text": "\"\"\"结算引擎异常定义。\n\n所有业务异常都带稳定的错误码（error_code），便于上游/测试断言。\n错误码规范：E_ + 大写短名，写入文档 docs/errors.md 后方可新增。\n\"\"\"\n\nfrom __future__ import annotations\n\n\nclass SettlementError(Exception):\n    \"\"\"结算领域基础异常。\n\n    Attributes:\n        code: 稳定错误码，例如 ``E_BAD_INPUT``。\n        detail: 可序列化的上下文信息，随异常一起上报。\n    \"\"\"\n\n    code = \"E_SETTLEMENT\"\n\n    def __init__(self, message: str, detail: dict | None = None) -> None:\n        super().__init__(message)\n        self.message = message\n        self.detail = detail or {}\n\n    def to_dict(self) -> dict:\n        return {\"error_code\": self.code, \"message\": self.message, \"detail\": self.detail}\n\n\nclass ValidationError(SettlementError):\n    \"\"\"输入校验不通过。\"\"\"\n\n    code = \"E_BAD_INPUT\"\n\n\nclass AllocationError(SettlementError):\n    \"\"\"分摊计算不成立（例如权重全为 0）。\"\"\"\n\n    code = \"E_ALLOCATION\"\n\n\nclass RefundError(SettlementError):\n    \"\"\"退款流程不成立（例如退货行号不存在）。\"\"\"\n\n    code = \"E_REFUND\"\n"
+    },
+    {
+      "path": "src/settlement/models.py",
+      "bytes": 4340,
+      "truncated": false,
+      "text": "\"\"\"结算领域模型。\n\n金额字段一律是 int 分，字段名统一以 ``_cents`` 结尾，避免单位歧义。\n\"\"\"\n\nfrom __future__ import annotations\n\nfrom dataclasses import dataclass, field\n\n\n@dataclass(frozen=True)\nclass OrderItem:\n    \"\"\"订单行项目。\"\"\"\n\n    line_no: int\n    sku: str\n    category: str\n    unit_price_cents: int\n    qty: int\n\n    @property\n    def gross_cents(self) -> int:\n        return self.unit_price_cents * self.qty\n\n\n@dataclass(frozen=True)\nclass Coupon:\n    \"\"\"优惠券。当前仅支持满减（amount）与折扣（percent）两种。\"\"\"\n\n    code: str\n    type: str\n    value: int\n    min_spend_cents: int = 0\n\n    def discount_cents(self, gross_cents: int) -> int:\n        \"\"\"按券面规则计算优惠金额（不含分摊）。\"\"\"\n        if gross_cents < self.min_spend_cents:\n            return 0\n        if self.type == \"amount\":\n            return min(self.value, gross_cents)\n        if self.type == \"percent\":\n            # value 表示折扣百分比，例如 88 表示打 8.8 折\n            off = gross_cents * (100 - self.value) // 100\n            return max(0, min(off, gross_cents))\n        raise ValueError(f\"unknown coupon type: {self.type}\")\n\n\n@dataclass(frozen=True)\nclass Order:\n    \"\"\"订单。\"\"\"\n\n    order_id: str\n    items: tuple[OrderItem, ...]\n    coupon: Coupon | None = None\n    platform_subsidy_cents: int = 0\n    shipping_fee_cents: int = 0\n\n    @property\n    def gross_cents(self) -> int:\n        return sum(i.gross_cents for i in self.items)\n\n    def item(self, line_no: int) -> OrderItem:\n        for it in self.items:\n            if it.line_no == line_no:\n                return it\n        raise KeyError(f\"line_no {line_no} not found\")\n\n    @property\n    def line_nos(self) -> tuple[int, ...]:\n        return tuple(i.line_no for i in self.items)\n\n\n@dataclass\nclass SettledLine:\n    \"\"\"结算后的行明细。\"\"\"\n\n    line_no: int\n    sku: str\n    category: str\n    gross_cents: int\n    discount_cents: int\n    paid_cents: int\n\n\n@dataclass\nclass Settlement:\n    \"\"\"整单结算结果。\"\"\"\n\n    order_id: str\n    gross_cents: int\n    coupon_discount_cents: int\n    subsidy_cents: int\n    shipping_fee_cents: int\n    paid_total_cents: int\n    lines: list[SettledLine] = field(default_factory=list)\n\n    @property\n    def discount_total_cents(self) -> int:\n        return self.coupon_discount_cents + self.subsidy_cents\n\n    def line(self, line_no: int) -> SettledLine:\n        for ln in self.lines:\n            if ln.line_no == line_no:\n                return ln\n        raise KeyError(f\"line_no {line_no} not found\")\n\n    def to_dict(self) -> dict:\n        return {\n            \"order_id\": self.order_id,\n            \"gross_cents\": self.gross_cents,\n            \"coupon_discount_cents\": self.coupon_discount_cents,\n            \"subsidy_cents\": self.subsidy_cents,\n            \"shipping_fee_cents\": self.shipping_fee_cents,\n            \"discount_total_cents\": self.discount_total_cents,\n            \"paid_total_cents\": self.paid_total_cents,\n            \"lines\": [\n                {\n                    \"line_no\": ln.line_no,\n                    \"sku\": ln.sku,\n                    \"category\": ln.category,\n                    \"gross_cents\": ln.gross_cents,\n                    \"discount_cents\": ln.discount_cents,\n                    \"paid_cents\": ln.paid_cents,\n                }\n                for ln in self.lines\n            ],\n        }\n\n\n@dataclass\nclass RefundLine:\n    \"\"\"退款明细行。\"\"\"\n\n    line_no: int\n    sku: str\n    refund_cents: int\n\n\n@dataclass\nclass RefundResult:\n    \"\"\"退款结果。\"\"\"\n\n    order_id: str\n    returned_line_nos: tuple[int, ...]\n    lines: list[RefundLine] = field(default_factory=list)\n    shipping_refund_cents: int = 0\n\n    @property\n    def refund_total_cents(self) -> int:\n        return sum(ln.refund_cents for ln in self.lines) + self.shipping_refund_cents\n\n    def to_dict(self) -> dict:\n        return {\n            \"order_id\": self.order_id,\n            \"returned_line_nos\": list(self.returned_line_nos),\n            \"lines\": [\n                {\"line_no\": ln.line_no, \"sku\": ln.sku, \"refund_cents\": ln.refund_cents}\n                for ln in self.lines\n            ],\n            \"shipping_refund_cents\": self.shipping_refund_cents,\n            \"refund_total_cents\": self.refund_total_cents,\n        }\n"
+    },
+    {
+      "path": "src/settlement/cli.py",
+      "bytes": 1773,
+      "truncated": false,
+      "text": "\"\"\"业务命令行入口。\n\n用法：\n    python -m settlement.cli settle --order tests/fixtures/order_standard.json\n    python -m settlement.cli refund --order tests/fixtures/order_standard.json --return 1,2\n\n输出统一为 JSON（stdout），错误为 {\"error_code\": ..., \"message\": ...} 且退出码 2。\n\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport json\nimport sys\n\nfrom . import service\nfrom .errors import SettlementError\n\n\ndef _parse_lines(raw: str) -> list[int]:\n    return [int(x) for x in raw.replace(\" \", \"\").split(\",\") if x]\n\n\ndef build_parser() -> argparse.ArgumentParser:\n    parser = argparse.ArgumentParser(\n        prog=\"settlement\", description=\"订单退款结算引擎 CLI\"\n    )\n    sub = parser.add_subparsers(dest=\"command\", required=True)\n\n    p_settle = sub.add_parser(\"settle\", help=\"结算整单，输出每行实付金额\")\n    p_settle.add_argument(\"--order\", required=True, help=\"订单 JSON 路径\")\n\n    p_refund = sub.add_parser(\"refund\", help=\"计算部分退货的退款金额\")\n    p_refund.add_argument(\"--order\", required=True, help=\"订单 JSON 路径\")\n    p_refund.add_argument(\"--return\", dest=\"returned\", required=True, help=\"退货行号，逗号分隔\")\n\n    return parser\n\n\ndef main(argv: list[str] | None = None) -> int:\n    args = build_parser().parse_args(argv)\n    try:\n        if args.command == \"settle\":\n            result = service.settle_file(args.order)\n        else:\n            result = service.refund_file(args.order, _parse_lines(args.returned))\n    except SettlementError as exc:\n        print(json.dumps(exc.to_dict(), ensure_ascii=False, indent=2))\n        return 2\n    print(json.dumps(result, ensure_ascii=False, indent=2))\n    return 0\n\n\nif __name__ == \"__main__\":\n    sys.exit(main())\n"
+    }
+  ],
+  "evidence": [
+    "REQ-2026-011#6-d1c897e446b5",
+    "REQ-2026-011#7-445fb4bbca8e",
+    "REQ-2026-011#10-9e68a28b4d55",
+    "REQ-2026-011#8-0e225a95c429",
+    "REQ-2026-011#9-8103a4172129",
+    "test_req_2026_011#3-d2ee1ae25eee",
+    "allocation#0-ca1bef1c6ca8",
+    "test_req_2026_011#4-05283d09787a",
+    "test_req_2026_011#5-e004a99df535",
+    "test_req_2026_011#8-3779bffc852b",
+    "test_req_2026_011#10-6942f591b5fd",
+    "test_req_2026_011#13-69526c5bae49",
+    "test_req_2026_011#7-1f836dffaf82",
+    "allocation#2-2bd64bd8ec14",
+    "money#0-d0b6952f95c3",
+    "models#3-4d5e5f667bc5",
+    "test_req_2026_012#5-55e39e2d5440",
+    "validators#1-93599e3d5991",
+    "engine#3-e0482a733338",
+    "__init__#0-67a77019c70b",
+    "cli#0-c9dc735f67e8",
+    "allocation#1-61a8afd43c7e",
+    "models#4-50431fa407d8",
+    "cli#2-138f3ad81c81",
+    "engine#2-c4f34cc72e74",
+    "test_req_2026_011#11-43c442991e1c",
+    "test_req_2026_011#9-65396fce96ec",
+    "allocation#3-8fd43d571bd4",
+    "errors#0-2ad2bc63c949",
+    "validators#0-8bcd149732ee"
+  ],
+  "queries": [
+    {
+      "route": "spec",
+      "query": "退款结算：类目排除分摊与尾差规则升级 按 spec/REQ-2026-011.md 实现 SPEC-011-01 ~ SPEC-011-05：优惠分摊支持类目排除、尾差改为逐行 1 分轮转、运费按“剩余实付为 0”退还、补齐负金额校验、新增退款预览接口。回归用例不得修改。",
+      "hits": [
+        {
+          "chunk_id": "REQ-2026-011#2-17c83a3ac603",
+          "path": "spec/REQ-2026-011.md",
+          "score": 9.5569
+        },
+        {
+          "chunk_id": "REQ-2026-011#6-d1c897e446b5",
+          "path": "spec/REQ-2026-011.md",
+          "score": 8.5451
+        },
+        {
+          "chunk_id": "REQ-2026-011#3-9d5c04625a3b",
+          "path": "spec/REQ-2026-011.md",
+          "score": 7.2804
+        },
+        {
+          "chunk_id": "REQ-2026-011#11-b7bd48150b2f",
+          "path": "spec/REQ-2026-011.md",
+          "score": 7.1922
+        },
+        {
+          "chunk_id": "REQ-2026-011#1-4e872ff7b77e",
+          "path": "spec/REQ-2026-011.md",
+          "score": 6.4294
+        },
+        {
+          "chunk_id": "REQ-2026-011#7-445fb4bbca8e",
+          "path": "spec/REQ-2026-011.md",
+          "score": 6.351
+        },
+        {
+          "chunk_id": "REQ-2026-011#10-9e68a28b4d55",
+          "path": "spec/REQ-2026-011.md",
+          "score": 6.3294
+        },
+        {
+          "chunk_id": "REQ-2026-011#8-0e225a95c429",
+          "path": "spec/REQ-2026-011.md",
+          "score": 5.8529
+        }
+      ]
+    },
+    {
+      "route": "spec",
+      "query": "SPEC-011-01",
+      "hits": [
+        {
+          "chunk_id": "REQ-2026-011#6-d1c897e446b5",
+          "path": "spec/REQ-2026-011.md",
+          "score": 5.7
+        },
+        {
+          "chunk_id": "REQ-2026-011#8-0e225a95c429",
+          "path": "spec/REQ-2026-011.md",
+          "score": 5.6
+        },
+        {
+          "chunk_id": "REQ-2026-011#7-445fb4bbca8e",
+          "path": "spec/REQ-2026-011.md",
+          "score": 5.6
+        },
+        {
+          "chunk_id": "REQ-2026-011#10-9e68a28b4d55",
+          "path": "spec/REQ-2026-011.md",
+          "score": 5.6
+        },
+        {
+          "chunk_id": "REQ-2026-011#9-8103a4172129",
+          "path": "spec/REQ-2026-011.md",
+          "score": 5.6
+        },
+        {
+          "chunk_id": "REQ-2026-011#1-4e872ff7b77e",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.4
+        },
+        {
+          "chunk_id": "REQ-2026-011#11-b7bd48150b2f",
+          "path": "spec/REQ-2026-011.md",
+          "score": 3.65
+        },
+        {
+          "chunk_id": "REQ-2026-011#14-1b812fc8f45d",
+          "path": "spec/REQ-2026-011.md",
+          "score": 2.8
+        }
+      ]
+    },
+    {
+      "route": "spec",
+      "query": "SPEC-011-02",
+      "hits": [
+        {
+          "chunk_id": "REQ-2026-011#7-445fb4bbca8e",
+          "path": "spec/REQ-2026-011.md",
+          "score": 5.6
+        },
+        {
+          "chunk_id": "REQ-2026-011#8-0e225a95c429",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.75
+        },
+        {
+          "chunk_id": "REQ-2026-011#10-9e68a28b4d55",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.75
+        },
+        {
+          "chunk_id": "REQ-2026-011#9-8103a4172129",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.75
+        },
+        {
+          "chunk_id": "REQ-2026-011#6-d1c897e446b5",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.75
+        },
+        {
+          "chunk_id": "REQ-2026-011#1-4e872ff7b77e",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.5
+        },
+        {
+          "chunk_id": "REQ-2026-011#11-b7bd48150b2f",
+          "path": "spec/REQ-2026-011.md",
+          "score": 3.65
+        },
+        {
+          "chunk_id": "REQ-2026-011#2-17c83a3ac603",
+          "path": "spec/REQ-2026-011.md",
+          "score": 3.25
+        }
+      ]
+    },
+    {
+      "route": "spec",
+      "query": "SPEC-011-03",
+      "hits": [
+        {
+          "chunk_id": "REQ-2026-011#8-0e225a95c429",
+          "path": "spec/REQ-2026-011.md",
+          "score": 5.6
+        },
+        {
+          "chunk_id": "REQ-2026-011#7-445fb4bbca8e",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.5
+        },
+        {
+          "chunk_id": "REQ-2026-011#10-9e68a28b4d55",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.5
+        },
+        {
+          "chunk_id": "REQ-2026-011#9-8103a4172129",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.5
+        },
+        {
+          "chunk_id": "REQ-2026-011#6-d1c897e446b5",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.5
+        },
+        {
+          "chunk_id": "REQ-2026-011#11-b7bd48150b2f",
+          "path": "spec/REQ-2026-011.md",
+          "score": 3.4
+        },
+        {
+          "chunk_id": "REQ-2026-011#1-4e872ff7b77e",
+          "path": "spec/REQ-2026-011.md",
+          "score": 3.2
+        },
+        {
+          "chunk_id": "REQ-2026-011#14-1b812fc8f45d",
+          "path": "spec/REQ-2026-011.md",
+          "score": 2.55
+        }
+      ]
+    },
+    {
+      "route": "spec",
+      "query": "SPEC-011-04",
+      "hits": [
+        {
+          "chunk_id": "REQ-2026-011#9-8103a4172129",
+          "path": "spec/REQ-2026-011.md",
+          "score": 5.6
+        },
+        {
+          "chunk_id": "REQ-2026-011#8-0e225a95c429",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.5
+        },
+        {
+          "chunk_id": "REQ-2026-011#7-445fb4bbca8e",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.5
+        },
+        {
+          "chunk_id": "REQ-2026-011#10-9e68a28b4d55",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.5
+        },
+        {
+          "chunk_id": "REQ-2026-011#6-d1c897e446b5",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.5
+        },
+        {
+          "chunk_id": "REQ-2026-011#11-b7bd48150b2f",
+          "path": "spec/REQ-2026-011.md",
+          "score": 3.5
+        },
+        {
+          "chunk_id": "REQ-2026-011#1-4e872ff7b77e",
+          "path": "spec/REQ-2026-011.md",
+          "score": 3.2
+        },
+        {
+          "chunk_id": "REQ-2026-011#14-1b812fc8f45d",
+          "path": "spec/REQ-2026-011.md",
+          "score": 2.55
+        }
+      ]
+    },
+    {
+      "route": "spec",
+      "query": "SPEC-011-05",
+      "hits": [
+        {
+          "chunk_id": "REQ-2026-011#10-9e68a28b4d55",
+          "path": "spec/REQ-2026-011.md",
+          "score": 5.6
+        },
+        {
+          "chunk_id": "REQ-2026-011#8-0e225a95c429",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.5
+        },
+        {
+          "chunk_id": "REQ-2026-011#7-445fb4bbca8e",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.5
+        },
+        {
+          "chunk_id": "REQ-2026-011#9-8103a4172129",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.5
+        },
+        {
+          "chunk_id": "REQ-2026-011#6-d1c897e446b5",
+          "path": "spec/REQ-2026-011.md",
+          "score": 4.5
+        },
+        {
+          "chunk_id": "REQ-2026-011#11-b7bd48150b2f",
+          "path": "spec/REQ-2026-011.md",
+          "score": 3.4
+        },
+        {
+          "chunk_id": "REQ-2026-011#1-4e872ff7b77e",
+          "path": "spec/REQ-2026-011.md",
+          "score": 3.2
+        },
+        {
+          "chunk_id": "REQ-2026-011#14-1b812fc8f45d",
+          "path": "spec/REQ-2026-011.md",
+          "score": 2.55
+        }
+      ]
+    },
+    {
+      "route": "code",
+      "query": "allocation 退款结算：类目排除分摊与尾差规则升级",
+      "hits": [
+        {
+          "chunk_id": "allocation#0-ca1bef1c6ca8",
+          "path": "src/settlement/allocation.py",
+          "score": 2.8273
+        },
+        {
+          "chunk_id": "__init__#0-67a77019c70b",
+          "path": "src/settlement/__init__.py",
+          "score": 2.8091
+        },
+        {
+          "chunk_id": "allocation#3-8fd43d571bd4",
+          "path": "src/settlement/allocation.py",
+          "score": 1.9818
+        },
+        {
+          "chunk_id": "allocation#1-61a8afd43c7e",
+          "path": "src/settlement/allocation.py",
+          "score": 1.8091
+        },
+        {
+          "chunk_id": "allocation#2-2bd64bd8ec14",
+          "path": "src/settlement/allocation.py",
+          "score": 1.7818
+        },
+        {
+          "chunk_id": "engine#3-e0482a733338",
+          "path": "src/settlement/engine.py",
+          "score": 1.5909
+        },
+        {
+          "chunk_id": "engine#2-c4f34cc72e74",
+          "path": "src/settlement/engine.py",
+          "score": 1.2182
+        },
+        {
+          "chunk_id": "models#3-4d5e5f667bc5",
+          "path": "src/settlement/models.py",
+          "score": 1.1182
+        },
+        {
+          "chunk_id": "cli#2-138f3ad81c81",
+          "path": "src/settlement/cli.py",
+          "score": 0.9455
+        },
+        {
+          "chunk_id": "errors#5-b1985d923e3c",
+          "path": "src/settlement/errors.py",
+          "score": 0.8364
+        }
+      ]
+    },
+    {
+      "route": "code",
+      "query": "src/settlement/allocation.py 按 spec/REQ-2026-011.md 实现 SPEC-011-01 ~ SPEC-011-05：优惠分摊支持类目排除、尾差改为逐行 1 分轮转、运费按“剩余实付为 0”退还、补齐负金额校验、新增退款预览接口。回归用例不得修改。",
+      "hits": [
+        {
+          "chunk_id": "allocation#0-ca1bef1c6ca8",
+          "path": "src/settlement/allocation.py",
+          "score": 4.2588
+        },
+        {
+          "chunk_id": "allocation#2-2bd64bd8ec14",
+          "path": "src/settlement/allocation.py",
+          "score": 3.6
+        },
+        {
+          "chunk_id": "__init__#0-67a77019c70b",
+          "path": "src/settlement/__init__.py",
+          "score": 3.598
+        },
+        {
+          "chunk_id": "money#0-d0b6952f95c3",
+          "path": "src/settlement/money.py",
+          "score": 3.5275
+        },
+        {
+          "chunk_id": "models#3-4d5e5f667bc5",
+          "path": "src/settlement/models.py",
+          "score": 3.5039
+        },
+        {
+          "chunk_id": "validators#1-93599e3d5991",
+          "path": "src/settlement/validators.py",
+          "score": 3.4451
+        },
+        {
+          "chunk_id": "engine#3-e0482a733338",
+          "path": "src/settlement/engine.py",
+          "score": 3.4216
+        },
+        {
+          "chunk_id": "allocation#1-61a8afd43c7e",
+          "path": "src/settlement/allocation.py",
+          "score": 3.2647
+        },
+        {
+          "chunk_id": "cli#0-c9dc735f67e8",
+          "path": "src/settlement/cli.py",
+          "score": 3.0275
+        },
+        {
+          "chunk_id": "models#4-50431fa407d8",
+          "path": "src/settlement/models.py",
+          "score": 2.9451
+        }
+      ]
+    },
+    {
+      "route": "code",
+      "query": "engine 退款结算：类目排除分摊与尾差规则升级",
+      "hits": [
+        {
+          "chunk_id": "__init__#0-67a77019c70b",
+          "path": "src/settlement/__init__.py",
+          "score": 2.8091
+        },
+        {
+          "chunk_id": "allocation#0-ca1bef1c6ca8",
+          "path": "src/settlement/allocation.py",
+          "score": 2.7364
+        },
+        {
+          "chunk_id": "engine#3-e0482a733338",
+          "path": "src/settlement/engine.py",
+          "score": 1.6818
+        },
+        {
+          "chunk_id": "allocation#3-8fd43d571bd4",
+          "path": "src/settlement/allocation.py",
+          "score": 1.5182
+        },
+        {
+          "chunk_id": "allocation#2-2bd64bd8ec14",
+          "path": "src/settlement/allocation.py",
+          "score": 1.3182
+        },
+        {
+          "chunk_id": "engine#2-c4f34cc72e74",
+          "path": "src/settlement/engine.py",
+          "score": 1.3091
+        },
+        {
+          "chunk_id": "allocation#1-61a8afd43c7e",
+          "path": "src/settlement/allocation.py",
+          "score": 1.1455
+        },
+        {
+          "chunk_id": "models#3-4d5e5f667bc5",
+          "path": "src/settlement/models.py",
+          "score": 1.1182
+        },
+        {
+          "chunk_id": "cli#2-138f3ad81c81",
+          "path": "src/settlement/cli.py",
+          "score": 0.9455
+        },
+        {
+          "chunk_id": "models#4-50431fa407d8",
+          "path": "src/settlement/models.py",
+          "score": 0.7455
+        }
+      ]
+    },
+    {
+      "route": "code",
+      "query": "src/settlement/engine.py 按 spec/REQ-2026-011.md 实现 SPEC-011-01 ~ SPEC-011-05：优惠分摊支持类目排除、尾差改为逐行 1 分轮转、运费按“剩余实付为 0”退还、补齐负金额校验、新增退款预览接口。回归用例不得修改。",
+      "hits": [
+        {
+          "chunk_id": "allocation#0-ca1bef1c6ca8",
+          "path": "src/settlement/allocation.py",
+          "score": 4.2392
+        },
+        {
+          "chunk_id": "__init__#0-67a77019c70b",
+          "path": "src/settlement/__init__.py",
+          "score": 3.598
+        },
+        {
+          "chunk_id": "money#0-d0b6952f95c3",
+          "path": "src/settlement/money.py",
+          "score": 3.5275
+        },
+        {
+          "chunk_id": "models#3-4d5e5f667bc5",
+          "path": "src/settlement/models.py",
+          "score": 3.5039
+        },
+        {
+          "chunk_id": "validators#1-93599e3d5991",
+          "path": "src/settlement/validators.py",
+          "score": 3.4451
+        },
+        {
+          "chunk_id": "engine#3-e0482a733338",
+          "path": "src/settlement/engine.py",
+          "score": 3.4412
+        },
+        {
+          "chunk_id": "allocation#2-2bd64bd8ec14",
+          "path": "src/settlement/allocation.py",
+          "score": 3.4216
+        },
+        {
+          "chunk_id": "cli#0-c9dc735f67e8",
+          "path": "src/settlement/cli.py",
+          "score": 3.0275
+        },
+        {
+          "chunk_id": "models#4-50431fa407d8",
+          "path": "src/settlement/models.py",
+          "score": 2.9451
+        },
+        {
+          "chunk_id": "engine#2-c4f34cc72e74",
+          "path": "src/settlement/engine.py",
+          "score": 2.9235
+        }
+      ]
+    },
+    {
+      "route": "code",
+      "query": "validators 退款结算：类目排除分摊与尾差规则升级",
+      "hits": [
+        {
+          "chunk_id": "__init__#0-67a77019c70b",
+          "path": "src/settlement/__init__.py",
+          "score": 2.8091
+        },
+        {
+          "chunk_id": "allocation#0-ca1bef1c6ca8",
+          "path": "src/settlement/allocation.py",
+          "score": 2.3636
+        },
+        {
+          "chunk_id": "engine#3-e0482a733338",
+          "path": "src/settlement/engine.py",
+          "score": 1.5909
+        },
+        {
+          "chunk_id": "allocation#3-8fd43d571bd4",
+          "path": "src/settlement/allocation.py",
+          "score": 1.5182
+        },
+        {
+          "chunk_id": "allocation#2-2bd64bd8ec14",
+          "path": "src/settlement/allocation.py",
+          "score": 1.3182
+        },
+        {
+          "chunk_id": "engine#2-c4f34cc72e74",
+          "path": "src/settlement/engine.py",
+          "score": 1.2182
+        },
+        {
+          "chunk_id": "allocation#1-61a8afd43c7e",
+          "path": "src/settlement/allocation.py",
+          "score": 1.1455
+        },
+        {
+          "chunk_id": "models#3-4d5e5f667bc5",
+          "path": "src/settlement/models.py",
+          "score": 1.1182
+        },
+        {
+          "chunk_id": "cli#2-138f3ad81c81",
+          "path": "src/settlement/cli.py",
+          "score": 0.9455
+        },
+        {
+          "chunk_id": "validators#0-8bcd149732ee",
+          "path": "src/settlement/validators.py",
+          "score": 0.8364
+        }
+      ]
+    },
+    {
+      "route": "code",
+      "query": "src/settlement/validators.py 按 spec/REQ-2026-011.md 实现 SPEC-011-01 ~ SPEC-011-05：优惠分摊支持类目排除、尾差改为逐行 1 分轮转、运费按“剩余实付为 0”退还、补齐负金额校验、新增退款预览接口。回归用例不得修改。",
+      "hits": [
+        {
+          "chunk_id": "allocation#0-ca1bef1c6ca8",
+          "path": "src/settlement/allocation.py",
+          "score": 4.0804
+        },
+        {
+          "chunk_id": "__init__#0-67a77019c70b",
+          "path": "src/settlement/__init__.py",
+          "score": 3.598
+        },
+        {
+          "chunk_id": "money#0-d0b6952f95c3",
+          "path": "src/settlement/money.py",
+          "score": 3.5275
+        },
+        {
+          "chunk_id": "models#3-4d5e5f667bc5",
+          "path": "src/settlement/models.py",
+          "score": 3.5039
+        },
+        {
+          "chunk_id": "validators#1-93599e3d5991",
+          "path": "src/settlement/validators.py",
+          "score": 3.4647
+        },
+        {
+          "chunk_id": "allocation#2-2bd64bd8ec14",
+          "path": "src/settlement/allocation.py",
+          "score": 3.4216
+        },
+        {
+          "chunk_id": "engine#3-e0482a733338",
+          "path": "src/settlement/engine.py",
+          "score": 3.4216
+        },
+        {
+          "chunk_id": "cli#0-c9dc735f67e8",
+          "path": "src/settlement/cli.py",
+          "score": 3.0275
+        },
+        {
+          "chunk_id": "models#4-50431fa407d8",
+          "path": "src/settlement/models.py",
+          "score": 2.9451
+        },
+        {
+          "chunk_id": "engine#2-c4f34cc72e74",
+          "path": "src/settlement/engine.py",
+          "score": 2.9039
+        }
+      ]
+    },
+    {
+      "route": "code",
+      "query": "errors 退款结算：类目排除分摊与尾差规则升级",
+      "hits": [
+        {
+          "chunk_id": "allocation#0-ca1bef1c6ca8",
+          "path": "src/settlement/allocation.py",
+          "score": 2.7364
+        },
+        {
+          "chunk_id": "__init__#0-67a77019c70b",
+          "path": "src/settlement/__init__.py",
+          "score": 2.4364
+        },
+        {
+          "chunk_id": "engine#3-e0482a733338",
+          "path": "src/settlement/engine.py",
+          "score": 1.5909
+        },
+        {
+          "chunk_id": "allocation#3-8fd43d571bd4",
+          "path": "src/settlement/allocation.py",
+          "score": 1.5182
+        },
+        {
+          "chunk_id": "allocation#2-2bd64bd8ec14",
+          "path": "src/settlement/allocation.py",
+          "score": 1.3182
+        },
+        {
+          "chunk_id": "engine#2-c4f34cc72e74",
+          "path": "src/settlement/engine.py",
+          "score": 1.2182
+        },
+        {
+          "chunk_id": "errors#0-2ad2bc63c949",
+          "path": "src/settlement/errors.py",
+          "score": 1.2091
+        },
+        {
+          "chunk_id": "allocation#1-61a8afd43c7e",
+          "path": "src/settlement/allocation.py",
+          "score": 1.1455
+        },
+        {
+          "chunk_id": "models#3-4d5e5f667bc5",
+          "path": "src/settlement/models.py",
+          "score": 1.1182
+        },
+        {
+          "chunk_id": "validators#0-8bcd149732ee",
+          "path": "src/settlement/validators.py",
+          "score": 1.1182
+        }
+      ]
+    },
+    {
+      "route": "code",
+      "query": "src/settlement/errors.py 按 spec/REQ-2026-011.md 实现 SPEC-011-01 ~ SPEC-011-05：优惠分摊支持类目排除、尾差改为逐行 1 分轮转、运费按“剩余实付为 0”退还、补齐负金额校验、新增退款预览接口。回归用例不得修改。",
+      "hits": [
+        {
+          "chunk_id": "allocation#0-ca1bef1c6ca8",
+          "path": "src/settlement/allocation.py",
+          "score": 4.2392
+        },
+        {
+          "chunk_id": "money#0-d0b6952f95c3",
+          "path": "src/settlement/money.py",
+          "score": 3.5275
+        },
+        {
+          "chunk_id": "models#3-4d5e5f667bc5",
+          "path": "src/settlement/models.py",
+          "score": 3.5039
+        },
+        {
+          "chunk_id": "validators#1-93599e3d5991",
+          "path": "src/settlement/validators.py",
+          "score": 3.4451
+        },
+        {
+          "chunk_id": "__init__#0-67a77019c70b",
+          "path": "src/settlement/__init__.py",
+          "score": 3.4392
+        },
+        {
+          "chunk_id": "allocation#2-2bd64bd8ec14",
+          "path": "src/settlement/allocation.py",
+          "score": 3.4216
+        },
+        {
+          "chunk_id": "engine#3-e0482a733338",
+          "path": "src/settlement/engine.py",
+          "score": 3.4216
+        },
+        {
+          "chunk_id": "cli#0-c9dc735f67e8",
+          "path": "src/settlement/cli.py",
+          "score": 3.1863
+        },
+        {
+          "chunk_id": "models#4-50431fa407d8",
+          "path": "src/settlement/models.py",
+          "score": 2.9451
+        },
+        {
+          "chunk_id": "engine#2-c4f34cc72e74",
+          "path": "src/settlement/engine.py",
+          "score": 2.9039
+        }
+      ]
+    },
+    {
+      "route": "code",
+      "query": "models 退款结算：类目排除分摊与尾差规则升级",
+      "hits": [
+        {
+          "chunk_id": "__init__#0-67a77019c70b",
+          "path": "src/settlement/__init__.py",
+          "score": 2.8091
+        },
+        {
+          "chunk_id": "allocation#0-ca1bef1c6ca8",
+          "path": "src/settlement/allocation.py",
+          "score": 2.3636
+        },
+        {
+          "chunk_id": "engine#3-e0482a733338",
+          "path": "src/settlement/engine.py",
+          "score": 1.5909
+        },
+        {
+          "chunk_id": "allocation#3-8fd43d571bd4",
+          "path": "src/settlement/allocation.py",
+          "score": 1.5182
+        },
+        {
+          "chunk_id": "allocation#2-2bd64bd8ec14",
+          "path": "src/settlement/allocation.py",
+          "score": 1.3182
+        },
+        {
+          "chunk_id": "engine#2-c4f34cc72e74",
+          "path": "src/settlement/engine.py",
+          "score": 1.2182
+        },
+        {
+          "chunk_id": "models#3-4d5e5f667bc5",
+          "path": "src/settlement/models.py",
+          "score": 1.2091
+        },
+        {
+          "chunk_id": "allocation#1-61a8afd43c7e",
+          "path": "src/settlement/allocation.py",
+          "score": 1.1455
+        },
+        {
+          "chunk_id": "validators#0-8bcd149732ee",
+          "path": "src/settlement/validators.py",
+          "score": 1.1182
+        },
+        {
+          "chunk_id": "cli#2-138f3ad81c81",
+          "path": "src/settlement/cli.py",
+          "score": 0.9455
+        }
+      ]
+    },
+    {
+      "route": "code",
+      "query": "src/settlement/models.py 按 spec/REQ-2026-011.md 实现 SPEC-011-01 ~ SPEC-011-05：优惠分摊支持类目排除、尾差改为逐行 1 分轮转、运费按“剩余实付为 0”退还、补齐负金额校验、新增退款预览接口。回归用例不得修改。",
+      "hits": [
+        {
+          "chunk_id": "allocation#0-ca1bef1c6ca8",
+          "path": "src/settlement/allocation.py",
+          "score": 4.0804
+        },
+        {
+          "chunk_id": "__init__#0-67a77019c70b",
+          "path": "src/settlement/__init__.py",
+          "score": 3.598
+        },
+        {
+          "chunk_id": "money#0-d0b6952f95c3",
+          "path": "src/settlement/money.py",
+          "score": 3.5275
+        },
+        {
+          "chunk_id": "models#3-4d5e5f667bc5",
+          "path": "src/settlement/models.py",
+          "score": 3.5235
+        },
+        {
+          "chunk_id": "validators#1-93599e3d5991",
+          "path": "src/settlement/validators.py",
+          "score": 3.4451
+        },
+        {
+          "chunk_id": "allocation#2-2bd64bd8ec14",
+          "path": "src/settlement/allocation.py",
+          "score": 3.4216
+        },
+        {
+          "chunk_id": "engine#3-e0482a733338",
+          "path": "src/settlement/engine.py",
+          "score": 3.4216
+        },
+        {
+          "chunk_id": "cli#0-c9dc735f67e8",
+          "path": "src/settlement/cli.py",
+          "score": 3.0275
+        },
+        {
+          "chunk_id": "models#4-50431fa407d8",
+          "path": "src/settlement/models.py",
+          "score": 2.9647
+        },
+        {
+          "chunk_id": "engine#2-c4f34cc72e74",
+          "path": "src/settlement/engine.py",
+          "score": 2.9039
+        }
+      ]
+    },
+    {
+      "route": "code",
+      "query": "cli 退款结算：类目排除分摊与尾差规则升级",
+      "hits": [
+        {
+          "chunk_id": "__init__#0-67a77019c70b",
+          "path": "src/settlement/__init__.py",
+          "score": 2.8091
+        },
+        {
+          "chunk_id": "allocation#0-ca1bef1c6ca8",
+          "path": "src/settlement/allocation.py",
+          "score": 2.3636
+        },
+        {
+          "chunk_id": "engine#3-e0482a733338",
+          "path": "src/settlement/engine.py",
+          "score": 1.5909
+        },
+        {
+          "chunk_id": "allocation#3-8fd43d571bd4",
+          "path": "src/settlement/allocation.py",
+          "score": 1.5182
+        },
+        {
+          "chunk_id": "cli#2-138f3ad81c81",
+          "path": "src/settlement/cli.py",
+          "score": 1.4091
+        },
+        {
+          "chunk_id": "allocation#2-2bd64bd8ec14",
+          "path": "src/settlement/allocation.py",
+          "score": 1.3182
+        },
+        {
+          "chunk_id": "engine#2-c4f34cc72e74",
+          "path": "src/settlement/engine.py",
+          "score": 1.2182
+        },
+        {
+          "chunk_id": "allocation#1-61a8afd43c7e",
+          "path": "src/settlement/allocation.py",
+          "score": 1.1455
+        },
+        {
+          "chunk_id": "models#3-4d5e5f667bc5",
+          "path": "src/settlement/models.py",
+          "score": 1.1182
+        },
+        {
+          "chunk_id": "cli#0-c9dc735f67e8",
+          "path": "src/settlement/cli.py",
+          "score": 0.9364
+        }
+      ]
+    },
+    {
+      "route": "code",
+      "query": "src/settlement/cli.py 按 spec/REQ-2026-011.md 实现 SPEC-011-01 ~ SPEC-011-05：优惠分摊支持类目排除、尾差改为逐行 1 分轮转、运费按“剩余实付为 0”退还、补齐负金额校验、新增退款预览接口。回归用例不得修改。",
+      "hits": [
+        {
+          "chunk_id": "allocation#0-ca1bef1c6ca8",
+          "path": "src/settlement/allocation.py",
+          "score": 4.0804
+        },
+        {
+          "chunk_id": "__init__#0-67a77019c70b",
+          "path": "src/settlement/__init__.py",
+          "score": 3.598
+        },
+        {
+          "chunk_id": "money#0-d0b6952f95c3",
+          "path": "src/settlement/money.py",
+          "score": 3.5275
+        },
+        {
+          "chunk_id": "models#3-4d5e5f667bc5",
+          "path": "src/settlement/models.py",
+          "score": 3.5039
+        },
+        {
+          "chunk_id": "validators#1-93599e3d5991",
+          "path": "src/settlement/validators.py",
+          "score": 3.4451
+        },
+        {
+          "chunk_id": "allocation#2-2bd64bd8ec14",
+          "path": "src/settlement/allocation.py",
+          "score": 3.4216
+        },
+        {
+          "chunk_id": "engine#3-e0482a733338",
+          "path": "src/settlement/engine.py",
+          "score": 3.4216
+        },
+        {
+          "chunk_id": "cli#0-c9dc735f67e8",
+          "path": "src/settlement/cli.py",
+          "score": 3.3059
+        },
+        {
+          "chunk_id": "cli#2-138f3ad81c81",
+          "path": "src/settlement/cli.py",
+          "score": 2.9471
+        },
+        {
+          "chunk_id": "models#4-50431fa407d8",
+          "path": "src/settlement/models.py",
+          "score": 2.9451
+        }
+      ]
+    },
+    {
+      "route": "test",
+      "query": "SPEC-011-01 SPEC-011-02 SPEC-011-03 SPEC-011-04 SPEC-011-05 退款结算：类目排除分摊与尾差规则升级",
+      "hits": [
+        {
+          "chunk_id": "test_req_2026_011#5-e004a99df535",
+          "path": "tests/acceptance/test_req_2026_011.py",
+          "score": 2.9222
+        },
+        {
+          "chunk_id": "test_req_2026_011#3-d2ee1ae25eee",
+          "path": "tests/acceptance/test_req_2026_011.py",
+          "score": 2.8222
+        },
+        {
+          "chunk_id": "test_req_2026_011#13-69526c5bae49",
+          "path": "tests/acceptance/test_req_2026_011.py",
+          "score": 2.5444
+        },
+        {
+          "chunk_id": "test_req_2026_011#4-05283d09787a",
+          "path": "tests/acceptance/test_req_2026_011.py",
+          "score": 2.4889
+        },
+        {
+          "chunk_id": "test_req_2026_011#11-43c442991e1c",
+          "path": "tests/acceptance/test_req_2026_011.py",
+          "score": 2.4444
+        },
+        {
+          "chunk_id": "test_req_2026_011#7-1f836dffaf82",
+          "path": "tests/acceptance/test_req_2026_011.py",
+          "score": 2.3889
+        },
+        {
+          "chunk_id": "test_req_2026_011#10-6942f591b5fd",
+          "path": "tests/acceptance/test_req_2026_011.py",
+          "score": 2.3444
+        },
+        {
+          "chunk_id": "test_req_2026_011#9-65396fce96ec",
+          "path": "tests/acceptance/test_req_2026_011.py",
+          "score": 2.2444
+        }
+      ]
+    },
+    {
+      "route": "test",
+      "query": "按 spec/REQ-2026-011.md 实现 SPEC-011-01 ~ SPEC-011-05：优惠分摊支持类目排除、尾差改为逐行 1 分轮转、运费按“剩余实付为 0”退还、补齐负金额校验、新增退款预览接口。回归用例不得修改。",
+      "hits": [
+        {
+          "chunk_id": "test_req_2026_011#3-d2ee1ae25eee",
+          "path": "tests/acceptance/test_req_2026_011.py",
+          "score": 4.3128
+        },
+        {
+          "chunk_id": "test_req_2026_011#4-05283d09787a",
+          "path": "tests/acceptance/test_req_2026_011.py",
+          "score": 4.1851
+        },
+        {
+          "chunk_id": "test_req_2026_011#5-e004a99df535",
+          "path": "tests/acceptance/test_req_2026_011.py",
+          "score": 3.8213
+        },
+        {
+          "chunk_id": "test_req_2026_011#8-3779bffc852b",
+          "path": "tests/acceptance/test_req_2026_011.py",
+          "score": 3.7851
+        },
+        {
+          "chunk_id": "test_req_2026_011#10-6942f591b5fd",
+          "path": "tests/acceptance/test_req_2026_011.py",
+          "score": 3.7489
+        },
+        {
+          "chunk_id": "test_req_2026_011#13-69526c5bae49",
+          "path": "tests/acceptance/test_req_2026_011.py",
+          "score": 3.6787
+        },
+        {
+          "chunk_id": "test_req_2026_011#7-1f836dffaf82",
+          "path": "tests/acceptance/test_req_2026_011.py",
+          "score": 3.6574
+        },
+        {
+          "chunk_id": "test_req_2026_012#5-55e39e2d5440",
+          "path": "tests/acceptance/test_req_2026_012.py",
+          "score": 3.4936
+        }
+      ]
+    }
+  ],
+  "missing": []
+}

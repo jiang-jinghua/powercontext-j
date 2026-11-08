@@ -1,0 +1,90 @@
+{
+  "task_id": "REQ-2026-012",
+  "task_title": "退款结果暴露剩余实付（规格 v2 追加项）",
+  "run_id": "20261108T221231-REQ-2026-012",
+  "status": "done",
+  "provider": "minimax",
+  "model": "MiniMax-M3",
+  "mode": "files",
+  "attempts": [
+    {
+      "attempt": 1,
+      "status": "written",
+      "detail": "写入 2 个文件，拒绝 无"
+    }
+  ],
+  "iterations": 1,
+  "spec_version": "2026-11-08T10:30+08:00",
+  "spec_codes": [
+    "SPEC-011-06"
+  ],
+  "evidence": [
+    "REQ-2026-011#11-3e42313464ed",
+    "engine#3-288d4a54aebf",
+    "engine#2-e3ab57cf8213",
+    "test_req_2026_012#2-454d81a44ae6",
+    "test_req_2026_012#5-55e39e2d5440",
+    "models#16-6214bf24c599",
+    "test_req_2026_011#7-1f836dffaf82",
+    "test_req_2026_012#3-ae3848977d11",
+    "models#3-c05930907f8e",
+    "test_req_2026_011#3-d2ee1ae25eee",
+    "test_req_2026_011#5-e004a99df535",
+    "test_req_2026_011#4-05283d09787a",
+    "test_req_2026_011#13-69526c5bae49",
+    "test_req_2026_011#9-65396fce96ec",
+    "test_req_2026_011#10-6942f591b5fd",
+    "test_req_2026_012#4-1cbfc8b6d50f",
+    "test_req_2026_011#8-3779bffc852b",
+    "engine#0-3966ce264755",
+    "engine#1-8f6276b082cb",
+    "engine#4-6d14a80c843e",
+    "models#5-0009c391ec1c"
+  ],
+  "patch_sha": "b492e95d2fe394e23d0188cba82cb3227f79d74570c68fe8cdfdc38635a95a74",
+  "patch_path": "artifacts\\runs\\20261108T221231-REQ-2026-012\\patch_attempt1.diff",
+  "tests": {
+    "ok": true,
+    "returncode": 0,
+    "passed": 32,
+    "failed": 0,
+    "duration_s": 6.24,
+    "tail": "................................                                         [100%]\n32 passed in 4.09s"
+  },
+  "done": [
+    "SPEC-011-06 已实现（验收用例通过）"
+  ],
+  "todo": [],
+  "risks": [
+    "BACKLOG-311 多次部分退货的累积对账未覆盖",
+    "BACKLOG-312 折扣券 + 类目排除缺少专项用例"
+  ],
+  "store_backend": "local-fts5",
+  "state_reused": {
+    "parent_task": "REQ-2026-011",
+    "parent_run_id": "20261108T221044-REQ-2026-011",
+    "parent_patch": "f26f7cd8bdbd",
+    "parent_tests": {
+      "ok": true,
+      "returncode": 0,
+      "passed": 28,
+      "failed": 0,
+      "duration_s": 5.14,
+      "tail": "............................                                             [100%]\n28 passed in 3.07s"
+    }
+  },
+  "run_dir": "artifacts\\runs\\20261108T221231-REQ-2026-012",
+  "backend": "powercontext",
+  "saved_at": "2026-11-08T22:12:53+0800",
+  "powercontext": {
+    "scope_id": "scp_619asyp8t1ar2t7mjkczd5c2nn",
+    "url": "http://127.0.0.1:8077",
+    "written": true,
+    "artifact": {
+      "family": "atomic-memory",
+      "artifact_id": "art_ef845e22a2334177b09512571cf5118b",
+      "revision": 1
+    },
+    "error": ""
+  }
+}

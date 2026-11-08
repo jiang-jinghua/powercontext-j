@@ -1,0 +1,31 @@
+{
+  "task_id": "REQ-2026-011",
+  "title": "退款结算：类目排除分摊与尾差规则升级",
+  "request": "按 spec/REQ-2026-011.md 实现 SPEC-011-01 ~ SPEC-011-05：优惠分摊支持类目排除、尾差改为逐行 1 分轮转、运费按“剩余实付为 0”退还、补齐负金额校验、新增退款预览接口。回归用例不得修改。",
+  "spec_codes": [
+    "SPEC-011-01",
+    "SPEC-011-02",
+    "SPEC-011-03",
+    "SPEC-011-04",
+    "SPEC-011-05"
+  ],
+  "target_files": [
+    "src/settlement/allocation.py",
+    "src/settlement/engine.py",
+    "src/settlement/validators.py",
+    "src/settlement/errors.py",
+    "src/settlement/models.py",
+    "src/settlement/cli.py"
+  ],
+  "test_paths": [
+    "tests/acceptance/test_req_2026_011.py"
+  ],
+  "acceptance_cmd": "python -m pytest -q tests/test_allocation.py tests/test_engine.py tests/test_service_cli.py tests/acceptance/test_req_2026_011.py",
+  "followups": [
+    "SPEC-011-06（规格 v2 追加）：退款结果增加剩余实付字段"
+  ],
+  "risks": [
+    "BACKLOG-311 多次部分退货的累积对账未覆盖",
+    "BACKLOG-312 折扣券 + 类目排除缺少专项用例"
+  ]
+}

@@ -1,0 +1,365 @@
+diff --git a/src/settlement/allocation.py b/src/settlement/allocation.py
+index 433b4da..726507f 100644
+--- a/src/settlement/allocation.py
++++ b/src/settlement/allocation.py
+@@ -1,10 +1,9 @@
+ """金额分摊。
+ 
+-规则（基线版本）：
++规则：
+ 1. 以各行应付金额为权重，按比例把待分摊总额拆到行上；
+ 2. 比例计算使用 :class:`fractions.Fraction`，保证不引入浮点误差；
+-3. 每行先向下取整，剩余的分（尾差）一次性给"权重最大"的行，
+-   权重相同则给 line_no 最小的行。
++3. 每行先向下取整，剩余的分按权重降序、line_no 升序逐行分配。
+ 
+ 该模块被 engine.settle 复用，退款金额完全由这里的分摊结果推导，
+ 因此分摊正确性直接决定退款正确性。
+@@ -29,34 +28,36 @@ def normalize_basis(basis: Iterable[tuple[int, int]]) -> list[tuple[int, int]]:
+         rows.append((int(line_no), int(weight)))
+     if not rows:
+         raise AllocationError("分摊基数为空")
+-    if sum(w for _, w in rows) == 0:
+-        raise AllocationError(
+-            "分摊基数总和为 0，无法按比例分摊",
+-            {"line_nos": [ln for ln, _ in rows]},
+-        )
+     return rows
+ 
+ 
+ def allocate(total_cents: int, basis: Sequence[tuple[int, int]]) -> dict[int, int]:
+     """把 ``total_cents`` 按 ``basis`` 权重分摊，返回 {line_no: 分摊额}。
+ 
+-    返回值的和严格等于 ``total_cents``。
++    返回值的和严格等于 ``total_cents``。若没有可分摊基数，则返回空字典，
++    由调用方将待分摊金额记录为整单未分摊优惠。
+     """
+     if total_cents < 0:
+         raise AllocationError("待分摊金额不能为负", {"total_cents": total_cents})
+     rows = normalize_basis(basis)
+-    weight_sum = sum(w for _, w in rows)
++    active_rows = [(line_no, weight) for line_no, weight in rows if weight > 0]
++    if not active_rows:
++        return {}
+ 
+-    floors: dict[int, int] = {}
+-    for line_no, weight in rows:
++    weight_sum = sum(weight for _, weight in active_rows)
++    floors: dict[int, int] = {line_no: 0 for line_no, _ in rows}
++    for line_no, weight in active_rows:
+         exact = Fraction(total_cents * weight, weight_sum)
+         floors[line_no] = exact.numerator // exact.denominator
+ 
+     remainder = total_cents - sum(floors.values())
+     if remainder:
+-        # 尾差：全部给权重最大的行（权重相同取 line_no 小者）
+-        target = max(rows, key=lambda r: (r[1], -r[0]))[0]
+-        floors[target] += remainder
++        ordered_rows = sorted(active_rows, key=lambda row: (-row[1], row[0]))
++        for line_no, _ in ordered_rows:
++            if remainder == 0:
++                break
++            floors[line_no] += 1
++            remainder -= 1
+     return floors
+ 
+ 
+diff --git a/src/settlement/cli.py b/src/settlement/cli.py
+index 8793286..8d1cd9b 100644
+--- a/src/settlement/cli.py
++++ b/src/settlement/cli.py
+@@ -3,6 +3,7 @@
+ 用法：
+     python -m settlement.cli settle --order tests/fixtures/order_standard.json
+     python -m settlement.cli refund --order tests/fixtures/order_standard.json --return 1,2
++    python -m settlement.cli preview --order tests/fixtures/order_standard.json --return 1,2
+ 
+ 输出统一为 JSON（stdout），错误为 {"error_code": ..., "message": ...} 且退出码 2。
+ """
+@@ -34,6 +35,10 @@ def build_parser() -> argparse.ArgumentParser:
+     p_refund.add_argument("--order", required=True, help="订单 JSON 路径")
+     p_refund.add_argument("--return", dest="returned", required=True, help="退货行号，逗号分隔")
+ 
++    p_preview = sub.add_parser("preview", help="预览部分退货的退款金额")
++    p_preview.add_argument("--order", required=True, help="订单 JSON 路径")
++    p_preview.add_argument("--return", dest="returned", required=True, help="退货行号，逗号分隔")
++
+     return parser
+ 
+ 
+@@ -42,6 +47,8 @@ def main(argv: list[str] | None = None) -> int:
+     try:
+         if args.command == "settle":
+             result = service.settle_file(args.order)
++        elif args.command == "preview":
++            result = service.preview_refund_file(args.order, _parse_lines(args.returned))
+         else:
+             result = service.refund_file(args.order, _parse_lines(args.returned))
+     except SettlementError as exc:
+diff --git a/src/settlement/engine.py b/src/settlement/engine.py
+index 22693b4..023546a 100644
+--- a/src/settlement/engine.py
++++ b/src/settlement/engine.py
+@@ -5,7 +5,7 @@ from __future__ import annotations
+ from typing import Iterable, Sequence
+ 
+ from .allocation import allocate, verify_total
+-from .errors import RefundError
++from .errors import NegativeAllocationError, RefundError
+ from .models import (
+     Coupon,
+     Order,
+@@ -15,7 +15,7 @@ from .models import (
+     SettledLine,
+     Settlement,
+ )
+-from .validators import validate_order, validate_return_lines
++from .validators import validate_order, validate_refund_amounts, validate_return_lines
+ 
+ 
+ def build_order(payload: dict) -> Order:
+@@ -37,6 +37,10 @@ def build_order(payload: dict) -> Order:
+             type=str(coupon_raw["type"]),
+             value=int(coupon_raw["value"]),
+             min_spend_cents=int(coupon_raw.get("min_spend_cents", 0)),
++            excluded_categories=tuple(
++                str(category)
++                for category in coupon_raw.get("excluded_categories", [])
++            ),
+         )
+         if coupon_raw
+         else None
+@@ -51,10 +55,7 @@ def build_order(payload: dict) -> Order:
+ 
+ 
+ def settle(order: Order) -> Settlement:
+-    """结算整单：计算每行实付金额。
+-
+-    待分摊总额 = 优惠券金额 + 平台补贴，按行应付金额比例分摊。
+-    """
++    """结算整单：计算每行实付金额。"""
+     validate_order(order)
+     gross_total = order.gross_cents
+ 
+@@ -62,28 +63,57 @@ def settle(order: Order) -> Settlement:
+     subsidy = order.platform_subsidy_cents
+     to_allocate = coupon_discount + subsidy
+ 
+-    allocated = allocate(to_allocate, [(it.line_no, it.gross_cents) for it in order.items])
+-    verify_total(to_allocate, allocated)
+-
+-    lines = [
+-        SettledLine(
+-            line_no=it.line_no,
+-            sku=it.sku,
+-            category=it.category,
+-            gross_cents=it.gross_cents,
+-            discount_cents=allocated[it.line_no],
+-            paid_cents=it.gross_cents - allocated[it.line_no],
+-        )
++    excluded_categories = set(
++        order.coupon.excluded_categories if order.coupon else ()
++    )
++    basis = [
++        (it.line_no, it.gross_cents)
+         for it in order.items
++        if it.gross_cents > 0 and it.category not in excluded_categories
+     ]
++    allocated = allocate(to_allocate, basis)
++    unallocated_discount = to_allocate - sum(allocated.values())
++    if unallocated_discount:
++        allocated = {it.line_no: allocated.get(it.line_no, 0) for it in order.items}
++
++    lines = []
++    for it in order.items:
++        discount = allocated.get(it.line_no, 0)
++        paid = it.gross_cents - discount
++        if paid < 0:
++            raise NegativeAllocationError(
++                "行实付金额不能为负",
++                {
++                    "order_id": order.order_id,
++                    "line_no": it.line_no,
++                    "paid_cents": paid,
++                },
++            )
++        lines.append(
++            SettledLine(
++                line_no=it.line_no,
++                sku=it.sku,
++                category=it.category,
++                gross_cents=it.gross_cents,
++                discount_cents=discount,
++                paid_cents=paid,
++            )
++        )
++
++    paid_total = (
++        sum(ln.paid_cents for ln in lines)
++        + order.shipping_fee_cents
++        - unallocated_discount
++    )
+     return Settlement(
+         order_id=order.order_id,
+         gross_cents=gross_total,
+         coupon_discount_cents=coupon_discount,
+         subsidy_cents=subsidy,
+         shipping_fee_cents=order.shipping_fee_cents,
+-        paid_total_cents=sum(ln.paid_cents for ln in lines) + order.shipping_fee_cents,
++        paid_total_cents=paid_total,
+         lines=lines,
++        unallocated_discount_cents=unallocated_discount,
+     )
+ 
+ 
+@@ -92,12 +122,7 @@ def refund(
+     settlement: Settlement,
+     returned_line_nos: Sequence[int] | Iterable[int],
+ ) -> RefundResult:
+-    """按已结算结果计算部分退货的退款金额。
+-
+-    规则（基线版本）：
+-    - 退货行的退款额 = 该行实付金额；
+-    - 运费仅在"整单全部退货"时退还。
+-    """
++    """按已结算结果计算部分退货的退款金额。"""
+     returned = validate_return_lines(order, returned_line_nos)
+     lines = [
+         RefundLine(
+@@ -107,8 +132,15 @@ def refund(
+         )
+         for ln in returned
+     ]
+-    all_returned = set(returned) == set(order.line_nos)
+-    shipping = order.shipping_fee_cents if all_returned else 0
++    validate_refund_amounts(order.order_id, lines)
++
++    returned_set = set(returned)
++    remaining_paid = sum(
++        settlement.line(line_no).paid_cents
++        for line_no in order.line_nos
++        if line_no not in returned_set
++    )
++    shipping = order.shipping_fee_cents if remaining_paid == 0 else 0
+     if not lines:
+         raise RefundError("退货行不能为空", {"order_id": order.order_id})
+     return RefundResult(
+@@ -116,4 +148,14 @@ def refund(
+         returned_line_nos=tuple(returned),
+         lines=lines,
+         shipping_refund_cents=shipping,
++        remaining_paid_cents=remaining_paid,
+     )
++
++
++def preview_refund(
++    order: Order,
++    returned_line_nos: Sequence[int] | Iterable[int],
++) -> RefundResult:
++    """只读预览退款结果，无需调用方预先持有结算结果。"""
++    settlement = settle(order)
++    return refund(order, settlement, returned_line_nos)
+diff --git a/src/settlement/errors.py b/src/settlement/errors.py
+index 10cbdcd..5850e23 100644
+--- a/src/settlement/errors.py
++++ b/src/settlement/errors.py
+@@ -42,3 +42,21 @@ class RefundError(SettlementError):
+     """退款流程不成立（例如退货行号不存在）。"""
+ 
+     code = "E_REFUND"
++
++
++class RefundAmountError(SettlementError):
++    """退款金额计算得到不合法的负值。"""
++
++    code = "E_REFUND_AMOUNT"
++
++
++class NegativeAllocationError(RefundAmountError):
++    """分摊后行实付金额为负。"""
++
++    code = "E_NEG_ALLOC"
++
++
++class NegativeRefundError(RefundAmountError):
++    """退款明细金额为负。"""
++
++    code = "E_NEG_REFUND"
+diff --git a/src/settlement/models.py b/src/settlement/models.py
+index b4deb35..896db36 100644
+--- a/src/settlement/models.py
++++ b/src/settlement/models.py
+@@ -31,6 +31,7 @@ class Coupon:
+     type: str
+     value: int
+     min_spend_cents: int = 0
++    excluded_categories: tuple[str, ...] = ()
+ 
+     def discount_cents(self, gross_cents: int) -> int:
+         """按券面规则计算优惠金额（不含分摊）。"""
+@@ -93,6 +94,7 @@ class Settlement:
+     shipping_fee_cents: int
+     paid_total_cents: int
+     lines: list[SettledLine] = field(default_factory=list)
++    unallocated_discount_cents: int = 0
+ 
+     @property
+     def discount_total_cents(self) -> int:
+@@ -113,6 +115,7 @@ class Settlement:
+             "shipping_fee_cents": self.shipping_fee_cents,
+             "discount_total_cents": self.discount_total_cents,
+             "paid_total_cents": self.paid_total_cents,
++            "unallocated_discount_cents": self.unallocated_discount_cents,
+             "lines": [
+                 {
+                     "line_no": ln.line_no,
+@@ -144,6 +147,7 @@ class RefundResult:
+     returned_line_nos: tuple[int, ...]
+     lines: list[RefundLine] = field(default_factory=list)
+     shipping_refund_cents: int = 0
++    remaining_paid_cents: int = 0
+ 
+     @property
+     def refund_total_cents(self) -> int:
+@@ -158,5 +162,6 @@ class RefundResult:
+                 for ln in self.lines
+             ],
+             "shipping_refund_cents": self.shipping_refund_cents,
++            "remaining_paid_cents": self.remaining_paid_cents,
+             "refund_total_cents": self.refund_total_cents,
+         }
+diff --git a/src/settlement/validators.py b/src/settlement/validators.py
+index 49b629c..b3bb592 100644
+--- a/src/settlement/validators.py
++++ b/src/settlement/validators.py
+@@ -7,8 +7,8 @@ from __future__ import annotations
+ 
+ from typing import Iterable, Sequence
+ 
+-from .errors import RefundError, ValidationError
+-from .models import Order
++from .errors import NegativeRefundError, RefundError, ValidationError
++from .models import Order, RefundLine
+ 
+ 
+ def validate_order(order: Order) -> None:
+@@ -58,3 +58,19 @@ def validate_return_lines(order: Order, returned_line_nos: Sequence[int] | Itera
+     if not result:
+         raise RefundError("退货行不能为空", {"order_id": order.order_id})
+     return result
++
++
++def validate_refund_amounts(
++    order_id: str, lines: Sequence[RefundLine]
++) -> None:
++    """退款明细不得包含负金额。"""
++    for line in lines:
++        if line.refund_cents < 0:
++            raise NegativeRefundError(
++                "退款金额不能为负",
++                {
++                    "order_id": order_id,
++                    "line_no": line.line_no,
++                    "refund_cents": line.refund_cents,
++                },
++            )

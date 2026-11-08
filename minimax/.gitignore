@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+artifacts/ctx_local.db
+.env
+.pytest_cache/
+*.orig
+*.rej
+artifacts/tmp/

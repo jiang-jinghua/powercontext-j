@@ -1,0 +1,26 @@
+# seekdb（工程资料存储 + 全文检索）
+# 用法：docker compose up -d
+services:
+  seekdb:
+    image: oceanbase/seekdb:latest
+    container_name: ctx-seekdb
+    ports:
+      - "2881:2881"   # MySQL 协议
+      - "2886:2886"   # seekdb Dashboard
+    environment:
+      SEEKDB_DATABASE: ctx
+      MEMORY_LIMIT: 2G
+      DATAFILE_SIZE: 2G
+    volumes:
+      - seekdb-data:/var/lib/oceanbase
+      # 如需启动即建库建表，把 scripts/seekdb_init 挂进来并打开 INIT_SCRIPTS_PATH
+      # - ./scripts/seekdb_init:/root/boot/init.d
+      # INIT_SCRIPTS_PATH: /root/boot/init.d
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h127.0.0.1 -P2881 -uroot || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  seekdb-data:

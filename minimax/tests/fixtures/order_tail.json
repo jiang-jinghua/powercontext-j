@@ -1,0 +1,11 @@
+{
+  "order_id": "SO20261107003",
+  "items": [
+    {"line_no": 1, "sku": "SKU-T1", "category": "book", "unit_price_cents": 10000, "qty": 1},
+    {"line_no": 2, "sku": "SKU-T2", "category": "book", "unit_price_cents": 10000, "qty": 1},
+    {"line_no": 3, "sku": "SKU-T3", "category": "book", "unit_price_cents": 10000, "qty": 1}
+  ],
+  "coupon": {"code": "CPN_TAIL", "type": "amount", "value": 10001, "min_spend_cents": 0},
+  "platform_subsidy_cents": 0,
+  "shipping_fee_cents": 0
+}

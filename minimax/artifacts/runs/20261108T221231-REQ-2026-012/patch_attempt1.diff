@@ -1,0 +1,220 @@
+diff --git a/src/settlement/engine.py b/src/settlement/engine.py
+index 22693b4..3c1a7b9 100644
+--- a/src/settlement/engine.py
++++ b/src/settlement/engine.py
+@@ -5,7 +5,7 @@ from __future__ import annotations
+ from typing import Iterable, Sequence
+ 
+ from .allocation import allocate, verify_total
+-from .errors import RefundError
++from .errors import NegativeAllocationError, RefundError
+ from .models import (
+     Coupon,
+     Order,
+@@ -15,7 +15,7 @@ from .models import (
+     SettledLine,
+     Settlement,
+ )
+-from .validators import validate_order, validate_return_lines
++from .validators import validate_order, validate_refund_amounts, validate_return_lines
+ 
+ 
+ def build_order(payload: dict) -> Order:
+@@ -37,6 +37,10 @@ def build_order(payload: dict) -> Order:
+             type=str(coupon_raw["type"]),
+             value=int(coupon_raw["value"]),
+             min_spend_cents=int(coupon_raw.get("min_spend_cents", 0)),
++            excluded_categories=tuple(
++                str(category)
++                for category in coupon_raw.get("excluded_categories", [])
++            ),
+         )
+         if coupon_raw
+         else None
+@@ -53,7 +57,7 @@ def build_order(payload: dict) -> Order:
+ def settle(order: Order) -> Settlement:
+     """结算整单：计算每行实付金额。
+ 
+-    待分摊总额 = 优惠券金额 + 平台补贴，按行应付金额比例分摊。
++    待分摊总额 = 优惠券金额 + 平台补贴。优惠券排除的类目不参与分摊。
+     """
+     validate_order(order)
+     gross_total = order.gross_cents
+@@ -61,29 +65,61 @@ def settle(order: Order) -> Settlement:
+     coupon_discount = order.coupon.discount_cents(gross_total) if order.coupon else 0
+     subsidy = order.platform_subsidy_cents
+     to_allocate = coupon_discount + subsidy
++    excluded_categories = set(
++        order.coupon.excluded_categories if order.coupon else ()
++    )
+ 
+-    allocated = allocate(to_allocate, [(it.line_no, it.gross_cents) for it in order.items])
+-    verify_total(to_allocate, allocated)
+-
+-    lines = [
+-        SettledLine(
+-            line_no=it.line_no,
+-            sku=it.sku,
+-            category=it.category,
+-            gross_cents=it.gross_cents,
+-            discount_cents=allocated[it.line_no],
+-            paid_cents=it.gross_cents - allocated[it.line_no],
+-        )
++    basis = [
++        (it.line_no, it.gross_cents)
+         for it in order.items
++        if it.gross_cents > 0 and it.category not in excluded_categories
+     ]
++    allocated = {it.line_no: 0 for it in order.items}
++    unallocated_discount = 0
++    if basis:
++        allocations = allocate(to_allocate, basis)
++        allocated.update(allocations)
++        verify_total(to_allocate, allocations)
++    else:
++        unallocated_discount = to_allocate
++
++    lines = []
++    for it in order.items:
++        discount = allocated[it.line_no]
++        paid = it.gross_cents - discount
++        if paid < 0:
++            raise NegativeAllocationError(
++                "分摊后行实付金额不能为负",
++                {
++                    "order_id": order.order_id,
++                    "line_no": it.line_no,
++                    "paid_cents": paid,
++                },
++            )
++        lines.append(
++            SettledLine(
++                line_no=it.line_no,
++                sku=it.sku,
++                category=it.category,
++                gross_cents=it.gross_cents,
++                discount_cents=discount,
++                paid_cents=paid,
++            )
++        )
++
+     return Settlement(
+         order_id=order.order_id,
+         gross_cents=gross_total,
+         coupon_discount_cents=coupon_discount,
+         subsidy_cents=subsidy,
+         shipping_fee_cents=order.shipping_fee_cents,
+-        paid_total_cents=sum(ln.paid_cents for ln in lines) + order.shipping_fee_cents,
++        paid_total_cents=(
++            sum(ln.paid_cents for ln in lines)
++            + order.shipping_fee_cents
++            - unallocated_discount
++        ),
+         lines=lines,
++        unallocated_discount_cents=unallocated_discount,
+     )
+ 
+ 
+@@ -92,12 +128,7 @@ def refund(
+     settlement: Settlement,
+     returned_line_nos: Sequence[int] | Iterable[int],
+ ) -> RefundResult:
+-    """按已结算结果计算部分退货的退款金额。
+-
+-    规则（基线版本）：
+-    - 退货行的退款额 = 该行实付金额；
+-    - 运费仅在"整单全部退货"时退还。
+-    """
++    """按已结算结果计算部分退货的退款金额。"""
+     returned = validate_return_lines(order, returned_line_nos)
+     lines = [
+         RefundLine(
+@@ -107,13 +138,28 @@ def refund(
+         )
+         for ln in returned
+     ]
+-    all_returned = set(returned) == set(order.line_nos)
+-    shipping = order.shipping_fee_cents if all_returned else 0
+     if not lines:
+         raise RefundError("退货行不能为空", {"order_id": order.order_id})
++
++    validate_refund_amounts(order.order_id, lines)
++    returned_set = set(returned)
++    remaining_paid = sum(
++        ln.paid_cents
++        for ln in settlement.lines
++        if ln.line_no not in returned_set
++    )
++    shipping = order.shipping_fee_cents if remaining_paid == 0 else 0
+     return RefundResult(
+         order_id=order.order_id,
+         returned_line_nos=tuple(returned),
+         lines=lines,
+         shipping_refund_cents=shipping,
++        remaining_paid_cents=remaining_paid,
+     )
++
++
++def preview_refund(
++    order: Order, returned_line_nos: Sequence[int] | Iterable[int]
++) -> RefundResult:
++    """只读预览退款结果：内部完成结算与退款计算。"""
++    return refund(order, settle(order), returned_line_nos)
+diff --git a/src/settlement/models.py b/src/settlement/models.py
+index b4deb35..2c87737 100644
+--- a/src/settlement/models.py
++++ b/src/settlement/models.py
+@@ -31,6 +31,14 @@ class Coupon:
+     type: str
+     value: int
+     min_spend_cents: int = 0
++    excluded_categories: tuple[str, ...] = ()
++
++    def __post_init__(self) -> None:
++        object.__setattr__(
++            self,
++            "excluded_categories",
++            tuple(str(category) for category in self.excluded_categories),
++        )
+ 
+     def discount_cents(self, gross_cents: int) -> int:
+         """按券面规则计算优惠金额（不含分摊）。"""
+@@ -39,7 +47,6 @@ class Coupon:
+         if self.type == "amount":
+             return min(self.value, gross_cents)
+         if self.type == "percent":
+-            # value 表示折扣百分比，例如 88 表示打 8.8 折
+             off = gross_cents * (100 - self.value) // 100
+             return max(0, min(off, gross_cents))
+         raise ValueError(f"unknown coupon type: {self.type}")
+@@ -93,6 +100,7 @@ class Settlement:
+     shipping_fee_cents: int
+     paid_total_cents: int
+     lines: list[SettledLine] = field(default_factory=list)
++    unallocated_discount_cents: int = 0
+ 
+     @property
+     def discount_total_cents(self) -> int:
+@@ -113,6 +121,7 @@ class Settlement:
+             "shipping_fee_cents": self.shipping_fee_cents,
+             "discount_total_cents": self.discount_total_cents,
+             "paid_total_cents": self.paid_total_cents,
++            "unallocated_discount_cents": self.unallocated_discount_cents,
+             "lines": [
+                 {
+                     "line_no": ln.line_no,
+@@ -144,6 +153,7 @@ class RefundResult:
+     returned_line_nos: tuple[int, ...]
+     lines: list[RefundLine] = field(default_factory=list)
+     shipping_refund_cents: int = 0
++    remaining_paid_cents: int = 0
+ 
+     @property
+     def refund_total_cents(self) -> int:
+@@ -158,5 +168,6 @@ class RefundResult:
+                 for ln in self.lines
+             ],
+             "shipping_refund_cents": self.shipping_refund_cents,
++            "remaining_paid_cents": self.remaining_paid_cents,
+             "refund_total_cents": self.refund_total_cents,
+         }

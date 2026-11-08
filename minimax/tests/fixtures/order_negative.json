@@ -1,0 +1,17 @@
+{
+  "order_id": "SO20261107005",
+  "items": [
+    {"line_no": 1, "sku": "SKU-A", "category": "digital", "unit_price_cents": 100000, "qty": 1},
+    {"line_no": 2, "sku": "SKU-B", "category": "book", "unit_price_cents": 10000, "qty": 2},
+    {"line_no": 3, "sku": "SKU-C", "category": "gift", "unit_price_cents": 5000, "qty": 1}
+  ],
+  "coupon": {
+    "code": "CPN_BIG",
+    "type": "amount",
+    "value": 50000,
+    "min_spend_cents": 0,
+    "excluded_categories": ["digital", "gift"]
+  },
+  "platform_subsidy_cents": 0,
+  "shipping_fee_cents": 0
+}

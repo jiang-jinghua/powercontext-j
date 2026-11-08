@@ -1,0 +1,1042 @@
+[
+  {
+    "route": "spec",
+    "query": "退款结算：类目排除分摊与尾差规则升级 按 spec/REQ-2026-011.md 实现 SPEC-011-01 ~ SPEC-011-05：优惠分摊支持类目排除、尾差改为逐行 1 分轮转、运费按“剩余实付为 0”退还、补齐负金额校验、新增退款预览接口。回归用例不得修改。",
+    "hits": [
+      {
+        "chunk_id": "REQ-2026-011#2-17c83a3ac603",
+        "path": "spec/REQ-2026-011.md",
+        "score": 9.5569
+      },
+      {
+        "chunk_id": "REQ-2026-011#6-d1c897e446b5",
+        "path": "spec/REQ-2026-011.md",
+        "score": 8.5451
+      },
+      {
+        "chunk_id": "REQ-2026-011#3-9d5c04625a3b",
+        "path": "spec/REQ-2026-011.md",
+        "score": 7.2804
+      },
+      {
+        "chunk_id": "REQ-2026-011#11-b7bd48150b2f",
+        "path": "spec/REQ-2026-011.md",
+        "score": 7.1922
+      },
+      {
+        "chunk_id": "REQ-2026-011#1-4e872ff7b77e",
+        "path": "spec/REQ-2026-011.md",
+        "score": 6.4294
+      },
+      {
+        "chunk_id": "REQ-2026-011#7-445fb4bbca8e",
+        "path": "spec/REQ-2026-011.md",
+        "score": 6.351
+      },
+      {
+        "chunk_id": "REQ-2026-011#10-9e68a28b4d55",
+        "path": "spec/REQ-2026-011.md",
+        "score": 6.3294
+      },
+      {
+        "chunk_id": "REQ-2026-011#8-0e225a95c429",
+        "path": "spec/REQ-2026-011.md",
+        "score": 5.8529
+      }
+    ]
+  },
+  {
+    "route": "spec",
+    "query": "SPEC-011-01",
+    "hits": [
+      {
+        "chunk_id": "REQ-2026-011#6-d1c897e446b5",
+        "path": "spec/REQ-2026-011.md",
+        "score": 5.7
+      },
+      {
+        "chunk_id": "REQ-2026-011#8-0e225a95c429",
+        "path": "spec/REQ-2026-011.md",
+        "score": 5.6
+      },
+      {
+        "chunk_id": "REQ-2026-011#7-445fb4bbca8e",
+        "path": "spec/REQ-2026-011.md",
+        "score": 5.6
+      },
+      {
+        "chunk_id": "REQ-2026-011#10-9e68a28b4d55",
+        "path": "spec/REQ-2026-011.md",
+        "score": 5.6
+      },
+      {
+        "chunk_id": "REQ-2026-011#9-8103a4172129",
+        "path": "spec/REQ-2026-011.md",
+        "score": 5.6
+      },
+      {
+        "chunk_id": "REQ-2026-011#1-4e872ff7b77e",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.4
+      },
+      {
+        "chunk_id": "REQ-2026-011#11-b7bd48150b2f",
+        "path": "spec/REQ-2026-011.md",
+        "score": 3.65
+      },
+      {
+        "chunk_id": "REQ-2026-011#14-1b812fc8f45d",
+        "path": "spec/REQ-2026-011.md",
+        "score": 2.8
+      }
+    ]
+  },
+  {
+    "route": "spec",
+    "query": "SPEC-011-02",
+    "hits": [
+      {
+        "chunk_id": "REQ-2026-011#7-445fb4bbca8e",
+        "path": "spec/REQ-2026-011.md",
+        "score": 5.6
+      },
+      {
+        "chunk_id": "REQ-2026-011#8-0e225a95c429",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.75
+      },
+      {
+        "chunk_id": "REQ-2026-011#10-9e68a28b4d55",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.75
+      },
+      {
+        "chunk_id": "REQ-2026-011#9-8103a4172129",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.75
+      },
+      {
+        "chunk_id": "REQ-2026-011#6-d1c897e446b5",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.75
+      },
+      {
+        "chunk_id": "REQ-2026-011#1-4e872ff7b77e",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.5
+      },
+      {
+        "chunk_id": "REQ-2026-011#11-b7bd48150b2f",
+        "path": "spec/REQ-2026-011.md",
+        "score": 3.65
+      },
+      {
+        "chunk_id": "REQ-2026-011#2-17c83a3ac603",
+        "path": "spec/REQ-2026-011.md",
+        "score": 3.25
+      }
+    ]
+  },
+  {
+    "route": "spec",
+    "query": "SPEC-011-03",
+    "hits": [
+      {
+        "chunk_id": "REQ-2026-011#8-0e225a95c429",
+        "path": "spec/REQ-2026-011.md",
+        "score": 5.6
+      },
+      {
+        "chunk_id": "REQ-2026-011#7-445fb4bbca8e",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.5
+      },
+      {
+        "chunk_id": "REQ-2026-011#10-9e68a28b4d55",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.5
+      },
+      {
+        "chunk_id": "REQ-2026-011#9-8103a4172129",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.5
+      },
+      {
+        "chunk_id": "REQ-2026-011#6-d1c897e446b5",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.5
+      },
+      {
+        "chunk_id": "REQ-2026-011#11-b7bd48150b2f",
+        "path": "spec/REQ-2026-011.md",
+        "score": 3.4
+      },
+      {
+        "chunk_id": "REQ-2026-011#1-4e872ff7b77e",
+        "path": "spec/REQ-2026-011.md",
+        "score": 3.2
+      },
+      {
+        "chunk_id": "REQ-2026-011#14-1b812fc8f45d",
+        "path": "spec/REQ-2026-011.md",
+        "score": 2.55
+      }
+    ]
+  },
+  {
+    "route": "spec",
+    "query": "SPEC-011-04",
+    "hits": [
+      {
+        "chunk_id": "REQ-2026-011#9-8103a4172129",
+        "path": "spec/REQ-2026-011.md",
+        "score": 5.6
+      },
+      {
+        "chunk_id": "REQ-2026-011#8-0e225a95c429",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.5
+      },
+      {
+        "chunk_id": "REQ-2026-011#7-445fb4bbca8e",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.5
+      },
+      {
+        "chunk_id": "REQ-2026-011#10-9e68a28b4d55",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.5
+      },
+      {
+        "chunk_id": "REQ-2026-011#6-d1c897e446b5",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.5
+      },
+      {
+        "chunk_id": "REQ-2026-011#11-b7bd48150b2f",
+        "path": "spec/REQ-2026-011.md",
+        "score": 3.5
+      },
+      {
+        "chunk_id": "REQ-2026-011#1-4e872ff7b77e",
+        "path": "spec/REQ-2026-011.md",
+        "score": 3.2
+      },
+      {
+        "chunk_id": "REQ-2026-011#14-1b812fc8f45d",
+        "path": "spec/REQ-2026-011.md",
+        "score": 2.55
+      }
+    ]
+  },
+  {
+    "route": "spec",
+    "query": "SPEC-011-05",
+    "hits": [
+      {
+        "chunk_id": "REQ-2026-011#10-9e68a28b4d55",
+        "path": "spec/REQ-2026-011.md",
+        "score": 5.6
+      },
+      {
+        "chunk_id": "REQ-2026-011#8-0e225a95c429",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.5
+      },
+      {
+        "chunk_id": "REQ-2026-011#7-445fb4bbca8e",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.5
+      },
+      {
+        "chunk_id": "REQ-2026-011#9-8103a4172129",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.5
+      },
+      {
+        "chunk_id": "REQ-2026-011#6-d1c897e446b5",
+        "path": "spec/REQ-2026-011.md",
+        "score": 4.5
+      },
+      {
+        "chunk_id": "REQ-2026-011#11-b7bd48150b2f",
+        "path": "spec/REQ-2026-011.md",
+        "score": 3.4
+      },
+      {
+        "chunk_id": "REQ-2026-011#1-4e872ff7b77e",
+        "path": "spec/REQ-2026-011.md",
+        "score": 3.2
+      },
+      {
+        "chunk_id": "REQ-2026-011#14-1b812fc8f45d",
+        "path": "spec/REQ-2026-011.md",
+        "score": 2.55
+      }
+    ]
+  },
+  {
+    "route": "code",
+    "query": "allocation 退款结算：类目排除分摊与尾差规则升级",
+    "hits": [
+      {
+        "chunk_id": "allocation#0-ca1bef1c6ca8",
+        "path": "src/settlement/allocation.py",
+        "score": 2.8273
+      },
+      {
+        "chunk_id": "__init__#0-67a77019c70b",
+        "path": "src/settlement/__init__.py",
+        "score": 2.8091
+      },
+      {
+        "chunk_id": "allocation#3-8fd43d571bd4",
+        "path": "src/settlement/allocation.py",
+        "score": 1.9818
+      },
+      {
+        "chunk_id": "allocation#1-61a8afd43c7e",
+        "path": "src/settlement/allocation.py",
+        "score": 1.8091
+      },
+      {
+        "chunk_id": "allocation#2-2bd64bd8ec14",
+        "path": "src/settlement/allocation.py",
+        "score": 1.7818
+      },
+      {
+        "chunk_id": "engine#3-e0482a733338",
+        "path": "src/settlement/engine.py",
+        "score": 1.5909
+      },
+      {
+        "chunk_id": "engine#2-c4f34cc72e74",
+        "path": "src/settlement/engine.py",
+        "score": 1.2182
+      },
+      {
+        "chunk_id": "models#3-4d5e5f667bc5",
+        "path": "src/settlement/models.py",
+        "score": 1.1182
+      },
+      {
+        "chunk_id": "cli#2-138f3ad81c81",
+        "path": "src/settlement/cli.py",
+        "score": 0.9455
+      },
+      {
+        "chunk_id": "errors#5-b1985d923e3c",
+        "path": "src/settlement/errors.py",
+        "score": 0.8364
+      }
+    ]
+  },
+  {
+    "route": "code",
+    "query": "src/settlement/allocation.py 按 spec/REQ-2026-011.md 实现 SPEC-011-01 ~ SPEC-011-05：优惠分摊支持类目排除、尾差改为逐行 1 分轮转、运费按“剩余实付为 0”退还、补齐负金额校验、新增退款预览接口。回归用例不得修改。",
+    "hits": [
+      {
+        "chunk_id": "allocation#0-ca1bef1c6ca8",
+        "path": "src/settlement/allocation.py",
+        "score": 4.2588
+      },
+      {
+        "chunk_id": "allocation#2-2bd64bd8ec14",
+        "path": "src/settlement/allocation.py",
+        "score": 3.6
+      },
+      {
+        "chunk_id": "__init__#0-67a77019c70b",
+        "path": "src/settlement/__init__.py",
+        "score": 3.598
+      },
+      {
+        "chunk_id": "money#0-d0b6952f95c3",
+        "path": "src/settlement/money.py",
+        "score": 3.5275
+      },
+      {
+        "chunk_id": "models#3-4d5e5f667bc5",
+        "path": "src/settlement/models.py",
+        "score": 3.5039
+      },
+      {
+        "chunk_id": "validators#1-93599e3d5991",
+        "path": "src/settlement/validators.py",
+        "score": 3.4451
+      },
+      {
+        "chunk_id": "engine#3-e0482a733338",
+        "path": "src/settlement/engine.py",
+        "score": 3.4216
+      },
+      {
+        "chunk_id": "allocation#1-61a8afd43c7e",
+        "path": "src/settlement/allocation.py",
+        "score": 3.2647
+      },
+      {
+        "chunk_id": "cli#0-c9dc735f67e8",
+        "path": "src/settlement/cli.py",
+        "score": 3.0275
+      },
+      {
+        "chunk_id": "models#4-50431fa407d8",
+        "path": "src/settlement/models.py",
+        "score": 2.9451
+      }
+    ]
+  },
+  {
+    "route": "code",
+    "query": "engine 退款结算：类目排除分摊与尾差规则升级",
+    "hits": [
+      {
+        "chunk_id": "__init__#0-67a77019c70b",
+        "path": "src/settlement/__init__.py",
+        "score": 2.8091
+      },
+      {
+        "chunk_id": "allocation#0-ca1bef1c6ca8",
+        "path": "src/settlement/allocation.py",
+        "score": 2.7364
+      },
+      {
+        "chunk_id": "engine#3-e0482a733338",
+        "path": "src/settlement/engine.py",
+        "score": 1.6818
+      },
+      {
+        "chunk_id": "allocation#3-8fd43d571bd4",
+        "path": "src/settlement/allocation.py",
+        "score": 1.5182
+      },
+      {
+        "chunk_id": "allocation#2-2bd64bd8ec14",
+        "path": "src/settlement/allocation.py",
+        "score": 1.3182
+      },
+      {
+        "chunk_id": "engine#2-c4f34cc72e74",
+        "path": "src/settlement/engine.py",
+        "score": 1.3091
+      },
+      {
+        "chunk_id": "allocation#1-61a8afd43c7e",
+        "path": "src/settlement/allocation.py",
+        "score": 1.1455
+      },
+      {
+        "chunk_id": "models#3-4d5e5f667bc5",
+        "path": "src/settlement/models.py",
+        "score": 1.1182
+      },
+      {
+        "chunk_id": "cli#2-138f3ad81c81",
+        "path": "src/settlement/cli.py",
+        "score": 0.9455
+      },
+      {
+        "chunk_id": "models#4-50431fa407d8",
+        "path": "src/settlement/models.py",
+        "score": 0.7455
+      }
+    ]
+  },
+  {
+    "route": "code",
+    "query": "src/settlement/engine.py 按 spec/REQ-2026-011.md 实现 SPEC-011-01 ~ SPEC-011-05：优惠分摊支持类目排除、尾差改为逐行 1 分轮转、运费按“剩余实付为 0”退还、补齐负金额校验、新增退款预览接口。回归用例不得修改。",
+    "hits": [
+      {
+        "chunk_id": "allocation#0-ca1bef1c6ca8",
+        "path": "src/settlement/allocation.py",
+        "score": 4.2392
+      },
+      {
+        "chunk_id": "__init__#0-67a77019c70b",
+        "path": "src/settlement/__init__.py",
+        "score": 3.598
+      },
+      {
+        "chunk_id": "money#0-d0b6952f95c3",
+        "path": "src/settlement/money.py",
+        "score": 3.5275
+      },
+      {
+        "chunk_id": "models#3-4d5e5f667bc5",
+        "path": "src/settlement/models.py",
+        "score": 3.5039
+      },
+      {
+        "chunk_id": "validators#1-93599e3d5991",
+        "path": "src/settlement/validators.py",
+        "score": 3.4451
+      },
+      {
+        "chunk_id": "engine#3-e0482a733338",
+        "path": "src/settlement/engine.py",
+        "score": 3.4412
+      },
+      {
+        "chunk_id": "allocation#2-2bd64bd8ec14",
+        "path": "src/settlement/allocation.py",
+        "score": 3.4216
+      },
+      {
+        "chunk_id": "cli#0-c9dc735f67e8",
+        "path": "src/settlement/cli.py",
+        "score": 3.0275
+      },
+      {
+        "chunk_id": "models#4-50431fa407d8",
+        "path": "src/settlement/models.py",
+        "score": 2.9451
+      },
+      {
+        "chunk_id": "engine#2-c4f34cc72e74",
+        "path": "src/settlement/engine.py",
+        "score": 2.9235
+      }
+    ]
+  },
+  {
+    "route": "code",
+    "query": "validators 退款结算：类目排除分摊与尾差规则升级",
+    "hits": [
+      {
+        "chunk_id": "__init__#0-67a77019c70b",
+        "path": "src/settlement/__init__.py",
+        "score": 2.8091
+      },
+      {
+        "chunk_id": "allocation#0-ca1bef1c6ca8",
+        "path": "src/settlement/allocation.py",
+        "score": 2.3636
+      },
+      {
+        "chunk_id": "engine#3-e0482a733338",
+        "path": "src/settlement/engine.py",
+        "score": 1.5909
+      },
+      {
+        "chunk_id": "allocation#3-8fd43d571bd4",
+        "path": "src/settlement/allocation.py",
+        "score": 1.5182
+      },
+      {
+        "chunk_id": "allocation#2-2bd64bd8ec14",
+        "path": "src/settlement/allocation.py",
+        "score": 1.3182
+      },
+      {
+        "chunk_id": "engine#2-c4f34cc72e74",
+        "path": "src/settlement/engine.py",
+        "score": 1.2182
+      },
+      {
+        "chunk_id": "allocation#1-61a8afd43c7e",
+        "path": "src/settlement/allocation.py",
+        "score": 1.1455
+      },
+      {
+        "chunk_id": "models#3-4d5e5f667bc5",
+        "path": "src/settlement/models.py",
+        "score": 1.1182
+      },
+      {
+        "chunk_id": "cli#2-138f3ad81c81",
+        "path": "src/settlement/cli.py",
+        "score": 0.9455
+      },
+      {
+        "chunk_id": "validators#0-8bcd149732ee",
+        "path": "src/settlement/validators.py",
+        "score": 0.8364
+      }
+    ]
+  },
+  {
+    "route": "code",
+    "query": "src/settlement/validators.py 按 spec/REQ-2026-011.md 实现 SPEC-011-01 ~ SPEC-011-05：优惠分摊支持类目排除、尾差改为逐行 1 分轮转、运费按“剩余实付为 0”退还、补齐负金额校验、新增退款预览接口。回归用例不得修改。",
+    "hits": [
+      {
+        "chunk_id": "allocation#0-ca1bef1c6ca8",
+        "path": "src/settlement/allocation.py",
+        "score": 4.0804
+      },
+      {
+        "chunk_id": "__init__#0-67a77019c70b",
+        "path": "src/settlement/__init__.py",
+        "score": 3.598
+      },
+      {
+        "chunk_id": "money#0-d0b6952f95c3",
+        "path": "src/settlement/money.py",
+        "score": 3.5275
+      },
+      {
+        "chunk_id": "models#3-4d5e5f667bc5",
+        "path": "src/settlement/models.py",
+        "score": 3.5039
+      },
+      {
+        "chunk_id": "validators#1-93599e3d5991",
+        "path": "src/settlement/validators.py",
+        "score": 3.4647
+      },
+      {
+        "chunk_id": "allocation#2-2bd64bd8ec14",
+        "path": "src/settlement/allocation.py",
+        "score": 3.4216
+      },
+      {
+        "chunk_id": "engine#3-e0482a733338",
+        "path": "src/settlement/engine.py",
+        "score": 3.4216
+      },
+      {
+        "chunk_id": "cli#0-c9dc735f67e8",
+        "path": "src/settlement/cli.py",
+        "score": 3.0275
+      },
+      {
+        "chunk_id": "models#4-50431fa407d8",
+        "path": "src/settlement/models.py",
+        "score": 2.9451
+      },
+      {
+        "chunk_id": "engine#2-c4f34cc72e74",
+        "path": "src/settlement/engine.py",
+        "score": 2.9039
+      }
+    ]
+  },
+  {
+    "route": "code",
+    "query": "errors 退款结算：类目排除分摊与尾差规则升级",
+    "hits": [
+      {
+        "chunk_id": "allocation#0-ca1bef1c6ca8",
+        "path": "src/settlement/allocation.py",
+        "score": 2.7364
+      },
+      {
+        "chunk_id": "__init__#0-67a77019c70b",
+        "path": "src/settlement/__init__.py",
+        "score": 2.4364
+      },
+      {
+        "chunk_id": "engine#3-e0482a733338",
+        "path": "src/settlement/engine.py",
+        "score": 1.5909
+      },
+      {
+        "chunk_id": "allocation#3-8fd43d571bd4",
+        "path": "src/settlement/allocation.py",
+        "score": 1.5182
+      },
+      {
+        "chunk_id": "allocation#2-2bd64bd8ec14",
+        "path": "src/settlement/allocation.py",
+        "score": 1.3182
+      },
+      {
+        "chunk_id": "engine#2-c4f34cc72e74",
+        "path": "src/settlement/engine.py",
+        "score": 1.2182
+      },
+      {
+        "chunk_id": "errors#0-2ad2bc63c949",
+        "path": "src/settlement/errors.py",
+        "score": 1.2091
+      },
+      {
+        "chunk_id": "allocation#1-61a8afd43c7e",
+        "path": "src/settlement/allocation.py",
+        "score": 1.1455
+      },
+      {
+        "chunk_id": "models#3-4d5e5f667bc5",
+        "path": "src/settlement/models.py",
+        "score": 1.1182
+      },
+      {
+        "chunk_id": "validators#0-8bcd149732ee",
+        "path": "src/settlement/validators.py",
+        "score": 1.1182
+      }
+    ]
+  },
+  {
+    "route": "code",
+    "query": "src/settlement/errors.py 按 spec/REQ-2026-011.md 实现 SPEC-011-01 ~ SPEC-011-05：优惠分摊支持类目排除、尾差改为逐行 1 分轮转、运费按“剩余实付为 0”退还、补齐负金额校验、新增退款预览接口。回归用例不得修改。",
+    "hits": [
+      {
+        "chunk_id": "allocation#0-ca1bef1c6ca8",
+        "path": "src/settlement/allocation.py",
+        "score": 4.2392
+      },
+      {
+        "chunk_id": "money#0-d0b6952f95c3",
+        "path": "src/settlement/money.py",
+        "score": 3.5275
+      },
+      {
+        "chunk_id": "models#3-4d5e5f667bc5",
+        "path": "src/settlement/models.py",
+        "score": 3.5039
+      },
+      {
+        "chunk_id": "validators#1-93599e3d5991",
+        "path": "src/settlement/validators.py",
+        "score": 3.4451
+      },
+      {
+        "chunk_id": "__init__#0-67a77019c70b",
+        "path": "src/settlement/__init__.py",
+        "score": 3.4392
+      },
+      {
+        "chunk_id": "allocation#2-2bd64bd8ec14",
+        "path": "src/settlement/allocation.py",
+        "score": 3.4216
+      },
+      {
+        "chunk_id": "engine#3-e0482a733338",
+        "path": "src/settlement/engine.py",
+        "score": 3.4216
+      },
+      {
+        "chunk_id": "cli#0-c9dc735f67e8",
+        "path": "src/settlement/cli.py",
+        "score": 3.1863
+      },
+      {
+        "chunk_id": "models#4-50431fa407d8",
+        "path": "src/settlement/models.py",
+        "score": 2.9451
+      },
+      {
+        "chunk_id": "engine#2-c4f34cc72e74",
+        "path": "src/settlement/engine.py",
+        "score": 2.9039
+      }
+    ]
+  },
+  {
+    "route": "code",
+    "query": "models 退款结算：类目排除分摊与尾差规则升级",
+    "hits": [
+      {
+        "chunk_id": "__init__#0-67a77019c70b",
+        "path": "src/settlement/__init__.py",
+        "score": 2.8091
+      },
+      {
+        "chunk_id": "allocation#0-ca1bef1c6ca8",
+        "path": "src/settlement/allocation.py",
+        "score": 2.3636
+      },
+      {
+        "chunk_id": "engine#3-e0482a733338",
+        "path": "src/settlement/engine.py",
+        "score": 1.5909
+      },
+      {
+        "chunk_id": "allocation#3-8fd43d571bd4",
+        "path": "src/settlement/allocation.py",
+        "score": 1.5182
+      },
+      {
+        "chunk_id": "allocation#2-2bd64bd8ec14",
+        "path": "src/settlement/allocation.py",
+        "score": 1.3182
+      },
+      {
+        "chunk_id": "engine#2-c4f34cc72e74",
+        "path": "src/settlement/engine.py",
+        "score": 1.2182
+      },
+      {
+        "chunk_id": "models#3-4d5e5f667bc5",
+        "path": "src/settlement/models.py",
+        "score": 1.2091
+      },
+      {
+        "chunk_id": "allocation#1-61a8afd43c7e",
+        "path": "src/settlement/allocation.py",
+        "score": 1.1455
+      },
+      {
+        "chunk_id": "validators#0-8bcd149732ee",
+        "path": "src/settlement/validators.py",
+        "score": 1.1182
+      },
+      {
+        "chunk_id": "cli#2-138f3ad81c81",
+        "path": "src/settlement/cli.py",
+        "score": 0.9455
+      }
+    ]
+  },
+  {
+    "route": "code",
+    "query": "src/settlement/models.py 按 spec/REQ-2026-011.md 实现 SPEC-011-01 ~ SPEC-011-05：优惠分摊支持类目排除、尾差改为逐行 1 分轮转、运费按“剩余实付为 0”退还、补齐负金额校验、新增退款预览接口。回归用例不得修改。",
+    "hits": [
+      {
+        "chunk_id": "allocation#0-ca1bef1c6ca8",
+        "path": "src/settlement/allocation.py",
+        "score": 4.0804
+      },
+      {
+        "chunk_id": "__init__#0-67a77019c70b",
+        "path": "src/settlement/__init__.py",
+        "score": 3.598
+      },
+      {
+        "chunk_id": "money#0-d0b6952f95c3",
+        "path": "src/settlement/money.py",
+        "score": 3.5275
+      },
+      {
+        "chunk_id": "models#3-4d5e5f667bc5",
+        "path": "src/settlement/models.py",
+        "score": 3.5235
+      },
+      {
+        "chunk_id": "validators#1-93599e3d5991",
+        "path": "src/settlement/validators.py",
+        "score": 3.4451
+      },
+      {
+        "chunk_id": "allocation#2-2bd64bd8ec14",
+        "path": "src/settlement/allocation.py",
+        "score": 3.4216
+      },
+      {
+        "chunk_id": "engine#3-e0482a733338",
+        "path": "src/settlement/engine.py",
+        "score": 3.4216
+      },
+      {
+        "chunk_id": "cli#0-c9dc735f67e8",
+        "path": "src/settlement/cli.py",
+        "score": 3.0275
+      },
+      {
+        "chunk_id": "models#4-50431fa407d8",
+        "path": "src/settlement/models.py",
+        "score": 2.9647
+      },
+      {
+        "chunk_id": "engine#2-c4f34cc72e74",
+        "path": "src/settlement/engine.py",
+        "score": 2.9039
+      }
+    ]
+  },
+  {
+    "route": "code",
+    "query": "cli 退款结算：类目排除分摊与尾差规则升级",
+    "hits": [
+      {
+        "chunk_id": "__init__#0-67a77019c70b",
+        "path": "src/settlement/__init__.py",
+        "score": 2.8091
+      },
+      {
+        "chunk_id": "allocation#0-ca1bef1c6ca8",
+        "path": "src/settlement/allocation.py",
+        "score": 2.3636
+      },
+      {
+        "chunk_id": "engine#3-e0482a733338",
+        "path": "src/settlement/engine.py",
+        "score": 1.5909
+      },
+      {
+        "chunk_id": "allocation#3-8fd43d571bd4",
+        "path": "src/settlement/allocation.py",
+        "score": 1.5182
+      },
+      {
+        "chunk_id": "cli#2-138f3ad81c81",
+        "path": "src/settlement/cli.py",
+        "score": 1.4091
+      },
+      {
+        "chunk_id": "allocation#2-2bd64bd8ec14",
+        "path": "src/settlement/allocation.py",
+        "score": 1.3182
+      },
+      {
+        "chunk_id": "engine#2-c4f34cc72e74",
+        "path": "src/settlement/engine.py",
+        "score": 1.2182
+      },
+      {
+        "chunk_id": "allocation#1-61a8afd43c7e",
+        "path": "src/settlement/allocation.py",
+        "score": 1.1455
+      },
+      {
+        "chunk_id": "models#3-4d5e5f667bc5",
+        "path": "src/settlement/models.py",
+        "score": 1.1182
+      },
+      {
+        "chunk_id": "cli#0-c9dc735f67e8",
+        "path": "src/settlement/cli.py",
+        "score": 0.9364
+      }
+    ]
+  },
+  {
+    "route": "code",
+    "query": "src/settlement/cli.py 按 spec/REQ-2026-011.md 实现 SPEC-011-01 ~ SPEC-011-05：优惠分摊支持类目排除、尾差改为逐行 1 分轮转、运费按“剩余实付为 0”退还、补齐负金额校验、新增退款预览接口。回归用例不得修改。",
+    "hits": [
+      {
+        "chunk_id": "allocation#0-ca1bef1c6ca8",
+        "path": "src/settlement/allocation.py",
+        "score": 4.0804
+      },
+      {
+        "chunk_id": "__init__#0-67a77019c70b",
+        "path": "src/settlement/__init__.py",
+        "score": 3.598
+      },
+      {
+        "chunk_id": "money#0-d0b6952f95c3",
+        "path": "src/settlement/money.py",
+        "score": 3.5275
+      },
+      {
+        "chunk_id": "models#3-4d5e5f667bc5",
+        "path": "src/settlement/models.py",
+        "score": 3.5039
+      },
+      {
+        "chunk_id": "validators#1-93599e3d5991",
+        "path": "src/settlement/validators.py",
+        "score": 3.4451
+      },
+      {
+        "chunk_id": "allocation#2-2bd64bd8ec14",
+        "path": "src/settlement/allocation.py",
+        "score": 3.4216
+      },
+      {
+        "chunk_id": "engine#3-e0482a733338",
+        "path": "src/settlement/engine.py",
+        "score": 3.4216
+      },
+      {
+        "chunk_id": "cli#0-c9dc735f67e8",
+        "path": "src/settlement/cli.py",
+        "score": 3.3059
+      },
+      {
+        "chunk_id": "cli#2-138f3ad81c81",
+        "path": "src/settlement/cli.py",
+        "score": 2.9471
+      },
+      {
+        "chunk_id": "models#4-50431fa407d8",
+        "path": "src/settlement/models.py",
+        "score": 2.9451
+      }
+    ]
+  },
+  {
+    "route": "test",
+    "query": "SPEC-011-01 SPEC-011-02 SPEC-011-03 SPEC-011-04 SPEC-011-05 退款结算：类目排除分摊与尾差规则升级",
+    "hits": [
+      {
+        "chunk_id": "test_req_2026_011#5-e004a99df535",
+        "path": "tests/acceptance/test_req_2026_011.py",
+        "score": 2.9222
+      },
+      {
+        "chunk_id": "test_req_2026_011#3-d2ee1ae25eee",
+        "path": "tests/acceptance/test_req_2026_011.py",
+        "score": 2.8222
+      },
+      {
+        "chunk_id": "test_req_2026_011#13-69526c5bae49",
+        "path": "tests/acceptance/test_req_2026_011.py",
+        "score": 2.5444
+      },
+      {
+        "chunk_id": "test_req_2026_011#4-05283d09787a",
+        "path": "tests/acceptance/test_req_2026_011.py",
+        "score": 2.4889
+      },
+      {
+        "chunk_id": "test_req_2026_011#11-43c442991e1c",
+        "path": "tests/acceptance/test_req_2026_011.py",
+        "score": 2.4444
+      },
+      {
+        "chunk_id": "test_req_2026_011#7-1f836dffaf82",
+        "path": "tests/acceptance/test_req_2026_011.py",
+        "score": 2.3889
+      },
+      {
+        "chunk_id": "test_req_2026_011#10-6942f591b5fd",
+        "path": "tests/acceptance/test_req_2026_011.py",
+        "score": 2.3444
+      },
+      {
+        "chunk_id": "test_req_2026_011#9-65396fce96ec",
+        "path": "tests/acceptance/test_req_2026_011.py",
+        "score": 2.2444
+      }
+    ]
+  },
+  {
+    "route": "test",
+    "query": "按 spec/REQ-2026-011.md 实现 SPEC-011-01 ~ SPEC-011-05：优惠分摊支持类目排除、尾差改为逐行 1 分轮转、运费按“剩余实付为 0”退还、补齐负金额校验、新增退款预览接口。回归用例不得修改。",
+    "hits": [
+      {
+        "chunk_id": "test_req_2026_011#3-d2ee1ae25eee",
+        "path": "tests/acceptance/test_req_2026_011.py",
+        "score": 4.3128
+      },
+      {
+        "chunk_id": "test_req_2026_011#4-05283d09787a",
+        "path": "tests/acceptance/test_req_2026_011.py",
+        "score": 4.1851
+      },
+      {
+        "chunk_id": "test_req_2026_011#5-e004a99df535",
+        "path": "tests/acceptance/test_req_2026_011.py",
+        "score": 3.8213
+      },
+      {
+        "chunk_id": "test_req_2026_011#8-3779bffc852b",
+        "path": "tests/acceptance/test_req_2026_011.py",
+        "score": 3.7851
+      },
+      {
+        "chunk_id": "test_req_2026_011#10-6942f591b5fd",
+        "path": "tests/acceptance/test_req_2026_011.py",
+        "score": 3.7489
+      },
+      {
+        "chunk_id": "test_req_2026_011#13-69526c5bae49",
+        "path": "tests/acceptance/test_req_2026_011.py",
+        "score": 3.6787
+      },
+      {
+        "chunk_id": "test_req_2026_011#7-1f836dffaf82",
+        "path": "tests/acceptance/test_req_2026_011.py",
+        "score": 3.6574
+      },
+      {
+        "chunk_id": "test_req_2026_012#5-55e39e2d5440",
+        "path": "tests/acceptance/test_req_2026_012.py",
+        "score": 3.4936
+      }
+    ]
+  }
+]

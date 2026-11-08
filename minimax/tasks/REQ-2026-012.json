@@ -1,0 +1,22 @@
+{
+  "task_id": "REQ-2026-012",
+  "parent_task": "REQ-2026-011",
+  "title": "退款结果暴露剩余实付（规格 v2 追加项）",
+  "request": "规格已更新到 v2，追加 SPEC-011-06：退款结果需要暴露剩余实付金额 remaining_paid_cents。请沿用 REQ-2026-011 的上下文与已保存状态继续实现，不得回退已完成的 SPEC-011-01 ~ 05，也不得修改任何测试文件。",
+  "spec_codes": [
+    "SPEC-011-06"
+  ],
+  "target_files": [
+    "src/settlement/models.py",
+    "src/settlement/engine.py"
+  ],
+  "test_paths": [
+    "tests/acceptance/test_req_2026_012.py"
+  ],
+  "acceptance_cmd": "python -m pytest -q tests/test_allocation.py tests/test_engine.py tests/test_service_cli.py tests/acceptance/test_req_2026_011.py tests/acceptance/test_req_2026_012.py",
+  "followups": [],
+  "risks": [
+    "BACKLOG-311 多次部分退货的累积对账未覆盖",
+    "BACKLOG-312 折扣券 + 类目排除缺少专项用例"
+  ]
+}

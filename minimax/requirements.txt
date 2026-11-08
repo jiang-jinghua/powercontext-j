@@ -1,0 +1,8 @@
+# 运行期依赖（引擎 + 测试 + 上下文检索）
+pytest>=8.0
+pymysql>=1.1
+httpx>=0.27
+jieba>=0.42.1
+
+# 任务状态与交接（PowerContext 1.5+）：安装 CLI 与内置 SQLite 运行时
+powercontext[cli,server]>=1.5.0
