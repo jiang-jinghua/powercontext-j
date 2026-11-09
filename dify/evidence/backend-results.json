@@ -1,92 +1,359 @@
 [
   {
+    "scenario": "A 正常砍价",
     "input": {
-      "player": "verify-2ad25fdff818",
-      "action": "开始",
+      "player": "verify-a0dbce850891",
+      "action": "对比邻摊",
       "request_id": "0"
     },
+    "expected": {
+      "round": 1,
+      "price": 9.8,
+      "mood": 44,
+      "status": "open",
+      "tactic": "对比邻摊"
+    },
     "output": {
-      "story": "欢迎来到回声旅店。桌上有一把遗失的钥匙，柜台后藏着一本账本。",
-      "trust": 0,
-      "turn": 1,
+      "player": "verify-a0dbce850891",
+      "action": "对比邻摊",
+      "tactic": "对比邻摊",
+      "round": 1,
+      "price": 9.8,
+      "mood": 44,
+      "intel": 0,
+      "status": "open",
+      "reply": "老王斜了一眼东头：「他家那是泡过水的，你也信？」\n\n💰 **9.8 元/斤**｜目标 ≤ 8.0｜第 1/6 轮｜😤 老王情绪 ████░░░░░░ 44/100",
       "choices": [
-        "归还钥匙",
-        "偷看账本",
-        "询问秘密"
+        "对比邻摊",
+        "挑刺",
+        "走人威胁",
+        "套近乎",
+        "卖惨",
+        "硬砍",
+        "试探行情",
+        "认错缓和"
       ],
+      "restarted": false,
       "storage": "seekdb"
-    }
+    },
+    "match": true
   },
   {
+    "scenario": "A 正常砍价",
     "input": {
-      "player": "verify-2ad25fdff818",
-      "action": "询问秘密",
+      "player": "verify-a0dbce850891",
+      "action": "走人威胁",
       "request_id": "1"
     },
+    "expected": {
+      "round": 2,
+      "price": 8.5,
+      "mood": 32,
+      "status": "open",
+      "tactic": "走人威胁"
+    },
     "output": {
-      "story": "店主合上账本：我们还不够熟。先帮我找回钥匙吧。",
-      "trust": 0,
-      "turn": 2,
+      "player": "verify-a0dbce850891",
+      "action": "走人威胁",
+      "tactic": "走人威胁",
+      "round": 2,
+      "price": 8.5,
+      "mood": 32,
+      "intel": 0,
+      "status": "open",
+      "reply": "老王把秤一收：「行行行，你要走我也不拦，早市就这一家？」\n\n💰 **8.5 元/斤**｜目标 ≤ 8.0｜第 2/6 轮｜😤 老王情绪 ███░░░░░░░ 32/100",
       "choices": [
-        "归还钥匙",
-        "偷看账本",
-        "询问秘密"
+        "对比邻摊",
+        "挑刺",
+        "走人威胁",
+        "套近乎",
+        "卖惨",
+        "硬砍",
+        "试探行情",
+        "认错缓和"
       ],
+      "restarted": false,
       "storage": "seekdb"
-    }
+    },
+    "match": true
   },
   {
+    "scenario": "A 正常砍价",
     "input": {
-      "player": "verify-2ad25fdff818",
-      "action": "归还钥匙",
+      "player": "verify-a0dbce850891",
+      "action": "试探行情",
       "request_id": "2"
     },
+    "expected": {
+      "round": 3,
+      "price": 8.1,
+      "mood": 40,
+      "status": "open",
+      "tactic": "试探行情"
+    },
     "output": {
-      "story": "店主收下钥匙：我会记住你的善意。",
-      "trust": 1,
-      "turn": 3,
+      "player": "verify-a0dbce850891",
+      "action": "试探行情",
+      "tactic": "试探行情",
+      "round": 3,
+      "price": 8.1,
+      "mood": 40,
+      "intel": 1,
+      "status": "open",
+      "reply": "老王压低声音：「行情我说了算？我给你透个底。」\n\n他往筐后一指：「这批黄瓜凌晨四点从批发市场拉的，进价七块二一斤」\n\n💰 **8.1 元/斤**｜目标 ≤ 8.0｜第 3/6 轮｜😤 老王情绪 ████░░░░░░ 40/100\n\n🕵 已套出进货价：每轮多让 0.15 元",
       "choices": [
-        "归还钥匙",
-        "偷看账本",
-        "询问秘密"
+        "对比邻摊",
+        "挑刺",
+        "走人威胁",
+        "套近乎",
+        "卖惨",
+        "硬砍",
+        "试探行情",
+        "认错缓和"
       ],
+      "restarted": false,
       "storage": "seekdb"
-    }
+    },
+    "match": true
   },
   {
+    "scenario": "A 正常砍价",
     "input": {
-      "player": "verify-2ad25fdff818",
-      "action": "询问秘密",
+      "player": "verify-a0dbce850891",
+      "action": "套近乎",
       "request_id": "3"
     },
-    "output": {
-      "story": "店主递来地下室钥匙：雨夜失踪的人，是未来的我。",
-      "trust": 1,
-      "turn": 4,
-      "choices": [
-        "归还钥匙",
-        "偷看账本",
-        "询问秘密"
-      ],
-      "storage": "seekdb"
-    }
-  },
-  {
-    "input": {
-      "player": "verify-2ad25fdff818",
-      "action": "开始",
-      "request_id": "4"
+    "expected": {
+      "round": 4,
+      "price": 7.7,
+      "mood": 48,
+      "status": "deal",
+      "tactic": "套近乎"
     },
     "output": {
-      "story": "你又回来了。店主仍记得你，信任度：1",
-      "trust": 1,
-      "turn": 5,
+      "player": "verify-a0dbce850891",
+      "action": "套近乎",
+      "tactic": "套近乎",
+      "round": 4,
+      "price": 7.7,
+      "mood": 48,
+      "intel": 1,
+      "status": "deal",
+      "reply": "老王笑了：「你这孩子嘴甜，天天来我都认得你了。」\n\n💰 **7.7 元/斤**｜目标 ≤ 8.0｜第 4/6 轮｜😤 老王情绪 █████░░░░░ 48/100\n\n🕵 已套出进货价：每轮多让 0.15 元\n\n🎉 **成交！7.7 元/斤**（砍下 4.3 元，-36%）。老王把黄瓜往袋里一塞，又抓了把小葱扔进去：「拿走拿走，别说是我给的价。」 ｜ 用了 4 轮",
       "choices": [
-        "归还钥匙",
-        "偷看账本",
-        "询问秘密"
+        "对比邻摊",
+        "挑刺",
+        "走人威胁",
+        "套近乎",
+        "卖惨",
+        "硬砍",
+        "试探行情",
+        "认错缓和"
       ],
+      "restarted": false,
       "storage": "seekdb"
-    }
+    },
+    "match": true
+  },
+  {
+    "scenario": "A 幂等重放",
+    "input": {
+      "player": "verify-a0dbce850891",
+      "action": "对比邻摊",
+      "request_id": "3"
+    },
+    "expected": {
+      "player": "verify-a0dbce850891",
+      "action": "套近乎",
+      "tactic": "套近乎",
+      "round": 4,
+      "price": 7.7,
+      "mood": 48,
+      "intel": 1,
+      "status": "deal",
+      "reply": "老王笑了：「你这孩子嘴甜，天天来我都认得你了。」\n\n💰 **7.7 元/斤**｜目标 ≤ 8.0｜第 4/6 轮｜😤 老王情绪 █████░░░░░ 48/100\n\n🕵 已套出进货价：每轮多让 0.15 元\n\n🎉 **成交！7.7 元/斤**（砍下 4.3 元，-36%）。老王把黄瓜往袋里一塞，又抓了把小葱扔进去：「拿走拿走，别说是我给的价。」 ｜ 用了 4 轮",
+      "choices": [
+        "对比邻摊",
+        "挑刺",
+        "走人威胁",
+        "套近乎",
+        "卖惨",
+        "硬砍",
+        "试探行情",
+        "认错缓和"
+      ],
+      "restarted": false,
+      "storage": "seekdb"
+    },
+    "output": {
+      "player": "verify-a0dbce850891",
+      "action": "套近乎",
+      "tactic": "套近乎",
+      "round": 4,
+      "price": 7.7,
+      "mood": 48,
+      "intel": 1,
+      "status": "deal",
+      "reply": "老王笑了：「你这孩子嘴甜，天天来我都认得你了。」\n\n💰 **7.7 元/斤**｜目标 ≤ 8.0｜第 4/6 轮｜😤 老王情绪 █████░░░░░ 48/100\n\n🕵 已套出进货价：每轮多让 0.15 元\n\n🎉 **成交！7.7 元/斤**（砍下 4.3 元，-36%）。老王把黄瓜往袋里一塞，又抓了把小葱扔进去：「拿走拿走，别说是我给的价。」 ｜ 用了 4 轮",
+      "choices": [
+        "对比邻摊",
+        "挑刺",
+        "走人威胁",
+        "套近乎",
+        "卖惨",
+        "硬砍",
+        "试探行情",
+        "认错缓和"
+      ],
+      "restarted": false,
+      "storage": "seekdb"
+    },
+    "match": true
+  },
+  {
+    "scenario": "A seekdb 持久化核对",
+    "input": {
+      "player": "verify-a0dbce850891"
+    },
+    "expected": {
+      "round": 4,
+      "price": 7.7,
+      "mood": 48,
+      "status": "deal",
+      "tactic": "套近乎"
+    },
+    "output": {
+      "player": "verify-a0dbce850891",
+      "round": 4,
+      "price": 7.7,
+      "mood": 48,
+      "intel": 1,
+      "tactics": {
+        "对比邻摊": 1,
+        "走人威胁": 1,
+        "试探行情": 1,
+        "套近乎": 1
+      },
+      "status": "deal",
+      "storage": "seekdb"
+    },
+    "match": true
+  },
+  {
+    "scenario": "B 重复出招衰减",
+    "input": {
+      "player": "verify-41a18de31b2d",
+      "action": "走人威胁",
+      "request_id": "b0"
+    },
+    "expected": {
+      "round": 1,
+      "price": 9.6,
+      "mood": 38,
+      "status": "open",
+      "tactic": "走人威胁"
+    },
+    "output": {
+      "player": "verify-41a18de31b2d",
+      "action": "走人威胁",
+      "tactic": "走人威胁",
+      "round": 1,
+      "price": 9.6,
+      "mood": 38,
+      "intel": 0,
+      "status": "open",
+      "reply": "老王把秤一收：「行行行，你要走我也不拦，早市就这一家？」\n\n💰 **9.6 元/斤**｜目标 ≤ 8.0｜第 1/6 轮｜😤 老王情绪 ████░░░░░░ 38/100",
+      "choices": [
+        "对比邻摊",
+        "挑刺",
+        "走人威胁",
+        "套近乎",
+        "卖惨",
+        "硬砍",
+        "试探行情",
+        "认错缓和"
+      ],
+      "restarted": false,
+      "storage": "seekdb"
+    },
+    "match": true
+  },
+  {
+    "scenario": "B 重复出招衰减",
+    "input": {
+      "player": "verify-41a18de31b2d",
+      "action": "走人威胁",
+      "request_id": "b1"
+    },
+    "expected": {
+      "round": 2,
+      "price": 8.9,
+      "mood": 26,
+      "status": "open",
+      "tactic": "走人威胁"
+    },
+    "output": {
+      "player": "verify-41a18de31b2d",
+      "action": "走人威胁",
+      "tactic": "走人威胁",
+      "round": 2,
+      "price": 8.9,
+      "mood": 26,
+      "intel": 0,
+      "status": "open",
+      "reply": "老王把秤一收：「行行行，你要走我也不拦，早市就这一家？」\n\n（「走人威胁」你已经用了 2 次，这回他没怎么松口。）\n\n💰 **8.9 元/斤**｜目标 ≤ 8.0｜第 2/6 轮｜😤 老王情绪 ███░░░░░░░ 26/100",
+      "choices": [
+        "对比邻摊",
+        "挑刺",
+        "走人威胁",
+        "套近乎",
+        "卖惨",
+        "硬砍",
+        "试探行情",
+        "认错缓和"
+      ],
+      "restarted": false,
+      "storage": "seekdb"
+    },
+    "match": true
+  },
+  {
+    "scenario": "B 重复出招衰减",
+    "input": {
+      "player": "verify-41a18de31b2d",
+      "action": "走人威胁",
+      "request_id": "b2"
+    },
+    "expected": {
+      "round": 3,
+      "price": 8.8,
+      "mood": 14,
+      "status": "broke",
+      "tactic": "走人威胁"
+    },
+    "output": {
+      "player": "verify-41a18de31b2d",
+      "action": "走人威胁",
+      "tactic": "走人威胁",
+      "round": 3,
+      "price": 8.8,
+      "mood": 14,
+      "intel": 0,
+      "status": "broke",
+      "reply": "老王把秤一收：「行行行，你要走我也不拦，早市就这一家？」\n\n💰 **8.8 元/斤**｜目标 ≤ 8.0｜第 3/6 轮｜😤 老王情绪 █░░░░░░░░░ 14/100\n\n💥 **谈崩了**：情绪跌到 14/100。老王把塑料布一掀：「不卖了不卖了，你上别家！」",
+      "choices": [
+        "对比邻摊",
+        "挑刺",
+        "走人威胁",
+        "套近乎",
+        "卖惨",
+        "硬砍",
+        "试探行情",
+        "认错缓和"
+      ],
+      "restarted": false,
+      "storage": "seekdb"
+    },
+    "match": true
   }
 ]

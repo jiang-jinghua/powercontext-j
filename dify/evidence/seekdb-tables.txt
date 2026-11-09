@@ -1,0 +1,11 @@
+SELECT VERSION() -> 5.7.25-OceanBase seekdb-v1.4.0.0
+SHOW TABLES -> ['zaoshi_events', 'zaoshi_intel', 'zaoshi_state']
+
+SELECT * FROM zaoshi_state（最近 4 个玩家）:
+   ('verify-fc8f2ca60dc6', 3, 8.8, 14, 0, 'broke')
+   ('verify-c5a3b061a31a', 4, 7.7, 48, 1, 'deal')
+   ('verify-a0dbce850891', 4, 7.7, 48, 1, 'deal')
+   ('verify-968cfc61f6dc', 4, 7.7, 48, 1, 'deal')
+
+zaoshi_events 行数: 24
+zaoshi_intel: ((1, '进货价'), (2, '邻摊价'), (3, '收摊规矩'))

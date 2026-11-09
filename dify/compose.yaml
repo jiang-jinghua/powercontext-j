@@ -1,19 +1,28 @@
+name: zaoshi
+
 services:
   seekdb:
     image: oceanbase/seekdb:latest
     environment:
-      ROOT_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+      ROOT_PASSWORD: ${DB_PASSWORD:?请先复制 .env.example 为 .env 并设置 DB_PASSWORD}
+      SEEKDB_DATABASE: ${DB_NAME:-zaoshi}
+      MEMORY_LIMIT: 2G
     volumes:
       - seekdata:/var/lib/seekdb
+
   api:
     build: .
     ports:
-      - "127.0.0.1:8000:8000"
+      - "8000:8000"
     environment:
       DB_HOST: seekdb
-      DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
-      GAME_TOKEN: ${GAME_TOKEN:?set GAME_TOKEN}
+      DB_PORT: "2881"
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD:?请先复制 .env.example 为 .env 并设置 DB_PASSWORD}
+      DB_NAME: ${DB_NAME:-zaoshi}
+      GAME_TOKEN: ${GAME_TOKEN:?请先复制 .env.example 为 .env 并设置 GAME_TOKEN}
     depends_on:
       - seekdb
+
 volumes:
   seekdata:

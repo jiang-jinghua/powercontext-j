@@ -1,0 +1,17 @@
+$ python verify.py
+API_BASE = http://127.0.0.1:8000
+剧本A：对比邻摊 / 走人威胁 / 试探行情 / 套近乎 → 7.7 元，4 轮，deal
+剧本B：走人威胁 / 走人威胁 / 走人威胁 → 情绪 14，broke
+证据已写入 evidence/backend-results.json（9 条）
+
+全部通过：数值与本地内核逐字段一致，幂等与持久化均成立。
+
+$ python negative.py
+错误令牌               期望 401 实际 401  OK
+缺少令牌               期望 401 实际 401  OK
+非法招式               期望 422 实际 422  OK
+缺少 action/request_id 期望 422 实际 422  OK
+证据已写入 evidence/negative-results.json
+
+$ curl -s /healthz
+{"ok":true,"database":"zaoshi","storage":"seekdb"}

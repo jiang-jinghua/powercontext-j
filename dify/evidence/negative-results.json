@@ -1,10 +1,34 @@
 [
   {
-    "case": "开始",
-    "status": 401
+    "case": "错误令牌",
+    "expect": 401,
+    "actual": 401,
+    "match": true
   },
   {
-    "case": "非法动作",
-    "status": 422
+    "case": "缺少令牌",
+    "expect": 401,
+    "actual": 401,
+    "match": true
+  },
+  {
+    "case": "非法招式",
+    "expect": 422,
+    "actual": 422,
+    "match": true,
+    "state_before": {
+      "round": 1,
+      "price": 9.8
+    },
+    "state_after": {
+      "round": 1,
+      "price": 9.8
+    }
+  },
+  {
+    "case": "缺少 action/request_id",
+    "expect": 422,
+    "actual": 422,
+    "match": true
   }
 ]

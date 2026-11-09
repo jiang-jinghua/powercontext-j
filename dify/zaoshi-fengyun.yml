@@ -1,0 +1,113 @@
+version: "0.1.5"
+kind: app
+app:
+  name: 早市风云 · 老王菜摊
+  mode: workflow
+  icon: 🥒
+  icon_background: "#E0F2E9"
+  description: 6 轮内把老王的黄瓜从 12 元/斤砍到 8 元/斤；局面存在 seekdb，关掉页面再回来仍在原局
+workflow:
+  environment_variables:
+    - id: zaoshi-api
+      name: ZAOSHI_API
+      value: "http://host.docker.internal:8000"
+      value_type: string
+      description: 菜摊后端地址（compose 默认把 api 映射到主机 8000 端口）
+    - id: game-token
+      name: GAME_TOKEN
+      value: ""
+      value_type: secret
+      description: 后端令牌，必须与 .env 里的 GAME_TOKEN 一致
+  conversation_variables: []
+  features: {}
+  graph:
+    nodes:
+      - id: start
+        position:
+          x: 0
+          y: 0
+        data:
+          type: start
+          title: 玩家出招
+          variables:
+            - variable: player
+              label: player
+              type: text-input
+              required: true
+              max_length: 64
+              options: []
+            - variable: action
+              label: action
+              type: text-input
+              required: true
+              max_length: 200
+              options: []
+            - variable: request_id
+              label: request_id
+              type: text-input
+              required: true
+              max_length: 64
+              options: []
+      - id: http
+        position:
+          x: 320
+          y: 0
+        data:
+          type: http-request
+          title: 读取局面并推进一轮
+          method: post
+          url: "{{#env.ZAOSHI_API#}}/turn"
+          authorization:
+            type: no-auth
+            config: null
+          headers: |
+            Content-Type: application/json
+            Authorization: Bearer {{#env.GAME_TOKEN#}}
+          params: ""
+          body:
+            type: json
+            data:
+              - id: body
+                key: ""
+                type: text
+                value: '{"player": "{{#start.player#}}", "action": "{{#start.action#}}", "request_id": "{{#start.request_id#}}"}'
+          timeout:
+            connect: 10
+            read: 60
+            write: 20
+          variables: []
+      - id: end
+        position:
+          x: 640
+          y: 0
+        data:
+          type: end
+          title: 输出摊主回话
+          outputs:
+            - variable: result
+              value_selector:
+                - http
+                - body
+    edges:
+      - id: start-http
+        source: start
+        target: http
+        sourceHandle: source
+        targetHandle: target
+        type: custom
+        data:
+          sourceType: start
+          targetType: http-request
+      - id: http-end
+        source: http
+        target: end
+        sourceHandle: source
+        targetHandle: target
+        type: custom
+        data:
+          sourceType: http-request
+          targetType: end
+    viewport:
+      x: 0
+      y: 0
+      zoom: 1
