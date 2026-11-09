@@ -1,24 +1,46 @@
 # -*- coding: utf-8 -*-
-"""老王菜摊 · 结算内核（服务端唯一真实来源）
+"""老王菜摊 · 结算内核（唯一真实来源）
 
-设计原则：玩家的"招式"由接口传参确定，所有数值（价格、情绪、轮次、结局）
-都在本文件里确定性结算，不依赖任何模型或随机数。
-因此同一串输入必然得到同一串输出，verify.py 可以用同一份代码算出期望值再和
-服务端返回逐字段比对 —— 这正是可复现性的来源。
+设计原则：招式由接口传参确定，所有数值（价格、情绪、轮次、结局）都在本文件里
+确定性结算，不用模型、不用随机数。同一串输入必然得到同一串输出。
 
-玩法：6 轮内把黄瓜从 12.0 元/斤砍到 8.0 元/斤及以下。
+一局的规则（与 README 的「规则表」逐条对应，rules_check.py 会逐条验证）：
+
+| 编号 | 规则 | 取值 |
+|------|------|------|
+| R1 | 开局标价 | 12.0 元/斤 |
+| R2 | 老王底价（任何情况不低于） | 7.2 元/斤 |
+| R3 | 成交线：价格 ≤ 8.0 即成交 | 8.0 元/斤 |
+| R4 | 轮数上限 | 6 轮 |
+| R5 | 每轮基础让价 | (现价 − 7.2) × 0.35 × 招式系数 × 衰减 |
+| R6 | 同一招第 n 次使用（n≥2）的衰减 | max(0.25, 1 − 0.4×(n−1))，即 ×0.6、×0.25、×0.25… |
+| R7 | 情绪 < 35 时，本轮让价再 ×0.6 | 老王被惹毛就不松口 |
+| R8 | 情绪 ≥ 85 且轮次 ≥ 3 时，额外抹零 0.3 元 | 只在该轮生效 |
+| R9 | 套出情报 | 首次「试探行情」一次性多让 0.2 元，并解锁 R10 |
+| R10 | 解锁情报后，每轮额外让价 0.15 × 本轮衰减 | 与 R5 叠加 |
+| R11 | 情绪 ≤ 20 掀摊 | 结局 broke，优先级高于成交 |
+| R12 | 第 6 轮结束仍 > 8.0 | 结局 timeout（没谈成） |
+| R13 | 已结束的局再出招 | 自动重开新局（restarted=true） |
+
+结局只有三种：deal（成交，仅当 R3 成立）、broke（掀摊）、timeout（收摊没谈成）。
 """
 
-START_PRICE = 12.0   # 开局标价（元/斤）
-FLOOR_PRICE = 7.2    # 老王底价（玩家不可见）
-TARGET_PRICE = 8.0   # 玩家获胜目标
-MAX_ROUND = 6        # 最大轮数
-GENTLE_PRICE = 8.5   # 收摊前的"友情价"上限
-BASE_RATIO = 0.35    # 每轮基础让价 = 剩余空间 × BASE_RATIO × 招式系数 × 衰减
-INTEL_BONUS = 0.15   # 套出进货价后每轮额外让价
-SOFTEN_PRICE = 0.3   # 情绪高涨时的"抹零"
+START_PRICE = 12.0   # R1 开局标价（元/斤）
+FLOOR_PRICE = 7.2    # R2 老王底价（玩家不可见）
+TARGET_PRICE = 8.0   # R3 成交线
+MAX_ROUND = 6        # R4 轮数上限
+BASE_RATIO = 0.35    # R5 每轮基础让价比例
+DECAY_STEP = 0.4     # R6 每次重复使用多衰减 0.4
+DECAY_FLOOR = 0.25   # R6 衰减下限
+LOW_MOOD_LINE = 35   # R7 低于此情绪让价打折
+LOW_MOOD_RATIO = 0.6  # R7 折扣
+SOFTEN_MOOD = 85     # R8 抹零所需情绪
+SOFTEN_PRICE = 0.3   # R8 抹零金额
+INTEL_ONE_OFF = 0.2  # R9 首次套出情报的一次性让价
+INTEL_BONUS = 0.15   # R10 解锁后每轮额外让价
+BROKE_MOOD = 20      # R11 掀摊阈值（≤ 即掀摊）
 
-# 招式表：coef 让价系数，mood 情绪增量，line 摊主台词模板
+# 招式表：coef 让价系数（R5），mood 情绪增量，line 摊主台词
 TACTICS = {
     "对比邻摊": {"coef": 1.30, "mood": -6, "line": "老王斜了一眼东头：「他家那是泡过水的，你也信？」"},
     "挑刺":     {"coef": 1.10, "mood": -4, "line": "老王捏起一根黄瓜：「你挑，随便挑，挑得出毛病算我的。」"},
@@ -71,6 +93,13 @@ def parse_action(text) -> str:
     return ""
 
 
+def decay_of(count_before: int) -> float:
+    """R6：第 count_before+1 次使用该招式时的衰减系数。"""
+    if count_before < 1:
+        return 1.0
+    return max(DECAY_FLOOR, 1.0 - DECAY_STEP * count_before)
+
+
 def band(mood: int) -> str:
     n = max(0, min(10, int(round(mood / 10.0))))
     return "█" * n + "░" * (10 - n)
@@ -87,62 +116,58 @@ def _closing(st: dict, status: str) -> str:
         )
     if status == "broke":
         return (
-            "\n\n💥 **谈崩了**：情绪跌到 %d/100。老王把塑料布一掀：「不卖了不卖了，你上别家！」" % st["mood"]
+            "\n\n💥 **谈崩了**：情绪 %d/100，已到掀摊线（≤%d）。"
+            "老王把塑料布一掀：「不卖了不卖了，你上别家！」" % (st["mood"], BROKE_MOOD)
         )
-    if status == "timeout":
-        return (
-            "\n\n⏰ **收摊了**：%d 轮用完，最后停在 %.1f 元/斤，没到 8.0 元的目标。"
-            "老王收摊前撂下一句：「明儿早点来。」" % (st["round"], st["price"])
-        )
-    return ""
+    return (
+        "\n\n⏰ **收摊了，没谈成**：%d 轮用完，最后 %.1f 元/斤，没到 %.1f 的成交线。"
+        "老王收摊前撂下一句：「明儿早点来。」" % (st["round"], st["price"], TARGET_PRICE)
+    )
 
 
 def settle(st: dict, tactic: str, intel_hint: str = "") -> dict:
-    """推进一轮，返回新状态 + 台词。st 会被就地更新。
-    intel_hint 由服务端从 seekdb 的行情表读出后传入（可为空）。
+    """推进一轮，返回台词；st 就地更新。
+
+    intel_hint 由服务端从 seekdb 的行情表读出后传入（只影响台词，不影响数值）。
     """
     rule = TACTICS[tactic]
     count_before = int(st["tactics"].get(tactic, 0))
-    decay = 1.0 if count_before < 1 else max(0.25, 1.0 - 0.4 * count_before)
+    decay = decay_of(count_before)          # R6
 
     old_price = float(st["price"])
-    gap = max(0.0, old_price - FLOOR_PRICE)
-    drop = gap * BASE_RATIO * rule["coef"] * decay
+    gap = max(0.0, old_price - FLOOR_PRICE)  # R2：空间按底价算，价格永不低于底价
+    drop = gap * BASE_RATIO * rule["coef"] * decay   # R5
+    if st["mood"] < LOW_MOOD_LINE:
+        drop *= LOW_MOOD_RATIO               # R7
     if st["intel"] >= 1:
-        drop += INTEL_BONUS * decay
-    if st["mood"] < 35:
-        drop *= 0.6  # 惹毛了就不松口
-    new_price = round(max(FLOOR_PRICE, old_price - drop), 1)
+        drop += INTEL_BONUS * decay          # R10
 
-    # 首次试探行情：掏出进货价，一次性冲击让价
     first_intel = 0
     if tactic == "试探行情" and not st["intel"]:
         st["intel"] = 1
         first_intel = 1
-        new_price = round(max(FLOOR_PRICE, new_price - 0.2), 1)
+        drop += INTEL_ONE_OFF                # R9（一次性）
+
+    new_price = round(max(FLOOR_PRICE, old_price - drop), 1)   # R2
 
     mood = st["mood"] + rule["mood"] + (8 if first_intel and st["mood"] < 80 else 0)
     mood = max(0, min(100, mood))
 
-    # 高情绪彩蛋：第 3 轮起心情够好就抹零
-    if mood >= 85 and st["round"] + 1 >= 3:
-        new_price = round(max(FLOOR_PRICE, new_price - SOFTEN_PRICE), 1)
+    if mood >= SOFTEN_MOOD and st["round"] + 1 >= 3:
+        new_price = round(max(FLOOR_PRICE, new_price - SOFTEN_PRICE), 1)  # R8
 
     st["round"] += 1
     st["price"] = new_price
     st["mood"] = mood
     st["tactics"][tactic] = count_before + 1
 
-    if mood < 20:
+    # 结局判定：掀摊优先于成交（R11 > R3），最后才是超时（R12）
+    if mood <= BROKE_MOOD:
         st["status"] = "broke"
     elif new_price <= TARGET_PRICE + 1e-9:
         st["status"] = "deal"
     elif st["round"] >= MAX_ROUND:
-        if new_price <= GENTLE_PRICE:
-            st["status"] = "deal"
-            st["price"] = round(min(new_price, GENTLE_PRICE), 1)
-        else:
-            st["status"] = "timeout"
+        st["status"] = "timeout"
     else:
         st["status"] = "open"
 
@@ -150,12 +175,13 @@ def settle(st: dict, tactic: str, intel_hint: str = "") -> dict:
     if first_intel:
         lines.append("他往筐后一指：「%s」" % (intel_hint or "这批黄瓜进价七块二，我卖你十二，你说我黑不黑？"))
     if decay < 1.0 and st["status"] == "open":
-        lines.append("（「%s」你已经用了 %d 次，这回他没怎么松口。）" % (tactic, count_before + 1))
+        lines.append("（「%s」你已经用了 %d 次，本轮让价只剩 ×%.2f。）"
+                     % (tactic, count_before + 1, decay))
     lines.append(
-        "💰 **%.1f 元/斤**｜目标 ≤ %.1f｜第 %d/%d 轮｜😤 老王情绪 %s %d/100"
+        "💰 **%.1f 元/斤**｜成交线 ≤ %.1f｜第 %d/%d 轮｜😤 老王情绪 %s %d/100"
         % (st["price"], TARGET_PRICE, st["round"], MAX_ROUND, band(st["mood"]), st["mood"])
     )
     if st["intel"]:
-        lines.append("🕵 已套出进货价：每轮多让 %.2f 元" % INTEL_BONUS)
+        lines.append("🕵 已套出进货价：每轮额外让 %.2f 元（乘本轮衰减）" % INTEL_BONUS)
     lines.append(_closing(st, st["status"]).strip())
     return {"reply": "\n\n".join(x for x in lines if x), "state": st}

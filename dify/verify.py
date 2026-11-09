@@ -140,6 +140,32 @@ def main():
     if exp_b[-1]["status"] != "broke":
         failures.append("剧本B 期望以掀摊收场，实际 %s" % exp_b[-1]["status"])
 
+    # 剧本 C：6 轮都没砍到 8.0 -> 收摊没谈成；再出一招则自动重开新局
+    p3 = "verify-" + uuid.uuid4().hex[:12]
+    acts_c = ["卖惨"] * 6
+    exp_c = expect(acts_c)
+    for i, act in enumerate(acts_c):
+        out = call("/turn", {"player": p3, "action": act, "request_id": "c%d" % i})
+        e = exp_c[i]
+        ok = (out["round"] == e["round"] and abs(out["price"] - e["price"]) < 1e-6
+              and out["mood"] == e["mood"] and out["status"] == e["status"])
+        if not ok:
+            failures.append("剧本C 第%d轮不符：期望 %s，实际 %s" % (i + 1, e, out))
+        rows.append({"scenario": "C 6 轮未成交", "input": {"player": p3, "action": act,
+                     "request_id": "c%d" % i}, "expected": e, "output": out, "match": ok})
+    if exp_c[-1]["status"] != "timeout":
+        failures.append("剧本C 期望 timeout（没谈成），实际 %s" % exp_c[-1]["status"])
+    if exp_c[-1]["price"] <= 8.0:
+        failures.append("剧本C 价格已到成交线，无法证明超时路径")
+
+    restart = call("/turn", {"player": p3, "action": "套近乎", "request_id": "c-restart"})
+    ok_restart = restart["restarted"] is True and restart["round"] == 1 and restart["status"] == "open"
+    if not ok_restart:
+        failures.append("重开新局失败：%s" % restart)
+    rows.append({"scenario": "C 终局后再出招自动重开", "input": {"player": p3, "action": "套近乎",
+                 "request_id": "c-restart"}, "expected": {"restarted": True, "round": 1},
+                 "output": restart, "match": ok_restart})
+
     pathlib.Path("evidence").mkdir(exist_ok=True)
     pathlib.Path("evidence/backend-results.json").write_text(
         json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -149,6 +175,8 @@ def main():
         " / ".join(acts_a), exp_a[-1]["price"], exp_a[-1]["round"], exp_a[-1]["status"]))
     print("剧本B：%s → 情绪 %d，%s" % (
         " / ".join(acts_b), exp_b[-1]["mood"], exp_b[-1]["status"]))
+    print("剧本C：%s → %.1f 元，%d 轮，%s（没到 8.0 不算成交）" % (
+        " / ".join(acts_c), exp_c[-1]["price"], exp_c[-1]["round"], exp_c[-1]["status"]))
     print("证据已写入 evidence/backend-results.json（%d 条）" % len(rows))
     if failures:
         print("\n失败 %d 项：" % len(failures))
