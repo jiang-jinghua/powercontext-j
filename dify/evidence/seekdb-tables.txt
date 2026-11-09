@@ -1,12 +1,22 @@
 SELECT VERSION() -> 5.7.25-OceanBase seekdb-v1.4.0.0
 SHOW TABLES -> ['zaoshi_events', 'zaoshi_intel', 'zaoshi_state']
 
-zaoshi_state（最近 5 个玩家）:
-   ('verify-fc8f2ca60dc6', 3, 8.8, 14, 0, 'broke')
-   ('verify-e8ac712d0b4d', 3, 8.8, 14, 0, 'broke')
-   ('verify-dae9e250469e', 4, 7.7, 48, 1, 'deal')
-   ('verify-c5a3b061a31a', 4, 7.7, 48, 1, 'deal')
-   ('verify-a0dbce850891', 4, 7.7, 48, 1, 'deal')
+SELECT player, round_no, price, mood, intel, status FROM zaoshi_state  （与 backend-results.json 同一次运行）
+  剧本A -> ('verify-87206a1bea9e', 4, 7.8, 40, 1, 'deal')
+  剧本B -> ('verify-22e2d376a234', 3, 8.8, 14, 0, 'broke')
+  剧本C -> ('verify-8dcb1e0cd342', 1, 10.5, 58, 0, 'open')  ← 剧本C 终局是第 6 轮 9.3 元 timeout；之后又出一招按 R13 重开，表里是新局第 1 轮
 
-zaoshi_events 行数: 39
-zaoshi_intel: ((1, '进货价'), (2, '邻摊价'), (3, '收摊规矩'))
+zaoshi_events（轮次留痕）行数: 14 （A 4 + B 3 + C 6 + 重开 1）
+
+剧本A 的幂等记录（request_id, response 前 40 字）:
+   ('0', '{"player": "verify-87206a1bea9e", "actio')
+   ('1', '{"player": "verify-87206a1bea9e", "actio')
+   ('2', '{"player": "verify-87206a1bea9e", "actio')
+   ('3', '{"player": "verify-87206a1bea9e", "actio')
+
+zaoshi_intel（行情表）:
+   (1, '进货价', '这批黄瓜凌晨四点从批发市场拉的，进价七块二一斤')
+   (2, '邻摊价', '东头老李今天卖八块五，他的货是泡过水的')
+   (3, '收摊规矩', '过了九点半我就要收摊，剩下的菜宁可贱卖')
+
+以上行数据由服务写入 seekdb 后用 MySQL 协议直连读出。

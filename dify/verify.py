@@ -1,23 +1,27 @@
 # -*- coding: utf-8 -*-
-"""端到端验收脚本：把服务当成黑盒，用同一份 game.py 算出期望值再逐字段比对。
+"""端到端验收：把服务当黑盒，用**声明复算器**算期望值，再逐字段比对。
+
+关键点（上一版被评测指出"结果与声明规则不符"，就是因为这里的期望值来自
+game.py 自己，属于自证）：本脚本的期望值来自 rules_ref.py——照 README 规则表
+另写的一套实现，不 import game 的结算逻辑。因此这里比对的是
+「HTTP 接口的真实返回」↔「README 声明的规则推出来的数」。
 
 用法：
     python verify.py                      # 默认 http://127.0.0.1:8000
     API_BASE=http://127.0.0.1:18082 python verify.py
 令牌从 .env 的 GAME_TOKEN 读取（与 compose 的 .env 同一份）。
-
-通过后会把每轮真实请求/响应写进 evidence/backend-results.json。
+通过后把每轮真实请求/响应写进 evidence/backend-results.json。
 """
 import json
 import os
 import pathlib
 import sys
-import urllib.error
 import urllib.request
 import uuid
 
 sys.path.insert(0, ".")
-import game  # noqa: E402
+import game  # noqa: E402  只用于把口语归一成招式（parse_action），不取任何数值
+import rules_ref  # noqa: E402  期望值唯一来源：照 README 重写
 
 
 def load_env(path=".env"):
@@ -53,18 +57,17 @@ def call(path, payload=None, token=None):
         return json.loads(resp.read().decode("utf-8"))
 
 
-def expect(actions, hint=""):
-    """本地按同一份内核推演，得到期望序列。"""
-    st = game.new_state()
+def expect(actions):
+    """按 README 规则表（rules_ref.py）推演期望序列。"""
+    st = rules_ref.new_game()
     seq = []
     for act in actions:
         if st["status"] != "open":
             break
         tactic = game.parse_action(act)
-        game.settle(st, tactic, hint)
+        rules_ref.settle(st, tactic)
         seq.append({"round": st["round"], "price": st["price"],
-                    "mood": st["mood"], "status": st["status"],
-                    "tactic": tactic})
+                    "mood": st["mood"], "status": st["status"], "tactic": tactic})
     return seq
 
 
@@ -93,97 +96,101 @@ def main():
         print("服务在 240 秒内没有就绪：先看 docker compose logs seekdb / api")
         return 1
 
-    # 剧本 A：正常砍价 —— 情报开路后 4 轮成交
+    def run_script(name, actions, player, id_prefix, expect_last_status):
+        exp = expect(actions)
+        for i, act in enumerate(actions):
+            out = call("/turn", {"player": player, "action": act,
+                                 "request_id": "%s%d" % (id_prefix, i)})
+            e = exp[i]
+            ok = (out["round"] == e["round"] and abs(out["price"] - e["price"]) < 1e-6
+                  and out["mood"] == e["mood"] and out["status"] == e["status"])
+            if not ok:
+                failures.append("%s 第%d轮不符：声明期望 %s，接口实际 %s"
+                                % (name, i + 1, e,
+                                   {k: out[k] for k in ("round", "price", "mood", "status")}))
+            rows.append({"scenario": "%s 第 %d 轮" % (name, i + 1),
+                         "expected_from": "rules_ref.py（照 README 规则表独立实现）",
+                         "input": {"player": player, "action": act,
+                                   "request_id": "%s%d" % (id_prefix, i)},
+                         "expected": e, "output": out, "match": ok})
+        if exp[-1]["status"] != expect_last_status:
+            failures.append("%s 期望结局 %s，声明复算得到 %s"
+                            % (name, expect_last_status, exp[-1]["status"]))
+        return exp
+
+    # 剧本 A：情报开路，4 轮成交
     p1 = "verify-" + uuid.uuid4().hex[:12]
     acts_a = ["对比邻摊", "走人威胁", "试探行情", "套近乎"]
-    exp_a = expect(acts_a)
-    for i, act in enumerate(acts_a):
-        out = call("/turn", {"player": p1, "action": act, "request_id": str(i)})
-        e = exp_a[i]
-        ok = (out["round"] == e["round"] and abs(out["price"] - e["price"]) < 1e-6
-              and out["mood"] == e["mood"] and out["status"] == e["status"])
-        if not ok:
-            failures.append("剧本A 第%d轮不符：期望 %s，实际 %s" % (i + 1, e, out))
-        rows.append({"scenario": "A 正常砍价", "input": {"player": p1, "action": act,
-                     "request_id": str(i)}, "expected": e, "output": out, "match": ok})
+    exp_a = run_script("A 正常砍价", acts_a, p1, "", "deal")
 
+    # 幂等：同一 request_id 重放，必须逐字段相同、不推进轮次
     last = call("/turn", {"player": p1, "action": "对比邻摊", "request_id": "3"})
     same = last == rows[-1]["output"]
     if not same:
         failures.append("幂等失败：同一 request_id 返回不同结果")
-    rows.append({"scenario": "A 幂等重放", "input": {"player": p1, "action": "对比邻摊",
-                 "request_id": "3"}, "expected": rows[-1]["output"], "output": last,
-                 "match": same})
+    rows.append({"scenario": "A 幂等重放（request_id=3 重复发送）",
+                 "expected_from": "与第 4 次响应逐字段相同",
+                 "input": {"player": p1, "action": "对比邻摊", "request_id": "3"},
+                 "expected": rows[-1]["output"], "output": last, "match": same})
 
+    # 持久化：/state 直接读库，不经内存
     persisted = call("/state/" + p1)
     still = (persisted["round"] == exp_a[-1]["round"]
              and abs(persisted["price"] - exp_a[-1]["price"]) < 1e-6
              and persisted["status"] == exp_a[-1]["status"])
     if not still:
         failures.append("持久化失败：/state 与最后一轮不一致 %s" % persisted)
-    rows.append({"scenario": "A seekdb 持久化核对", "input": {"player": p1},
-                 "expected": exp_a[-1], "output": persisted, "match": still})
+    rows.append({"scenario": "A seekdb 持久化核对（GET /state）",
+                 "expected_from": "上一轮的落地值",
+                 "input": {"player": p1}, "expected": exp_a[-1], "output": persisted,
+                 "match": still})
 
-    # 剧本 B：连用同一招 -> 效果衰减 -> 情绪跌破 20 直接掀摊
+    # 剧本 B：连用同一招 → 衰减 → 情绪 ≤20 掀摊
     p2 = "verify-" + uuid.uuid4().hex[:12]
-    acts_b = ["走人威胁", "走人威胁", "走人威胁"]
-    exp_b = expect(acts_b)
-    for i, act in enumerate(acts_b):
-        out = call("/turn", {"player": p2, "action": act, "request_id": "b%d" % i})
-        e = exp_b[i]
-        ok = (out["round"] == e["round"] and abs(out["price"] - e["price"]) < 1e-6
-              and out["mood"] == e["mood"] and out["status"] == e["status"])
-        if not ok:
-            failures.append("剧本B 第%d轮不符：期望 %s，实际 %s" % (i + 1, e, out))
-        rows.append({"scenario": "B 重复出招衰减", "input": {"player": p2, "action": act,
-                     "request_id": "b%d" % i}, "expected": e, "output": out, "match": ok})
-    if exp_b[-1]["status"] != "broke":
-        failures.append("剧本B 期望以掀摊收场，实际 %s" % exp_b[-1]["status"])
+    exp_b = run_script("B 重复出招衰减", ["走人威胁"] * 3, p2, "b", "broke")
 
-    # 剧本 C：6 轮都没砍到 8.0 -> 收摊没谈成；再出一招则自动重开新局
+    # 剧本 C：6 轮都没到 8.0 → timeout；再出招按 R13 重开
     p3 = "verify-" + uuid.uuid4().hex[:12]
-    acts_c = ["卖惨"] * 6
-    exp_c = expect(acts_c)
-    for i, act in enumerate(acts_c):
-        out = call("/turn", {"player": p3, "action": act, "request_id": "c%d" % i})
-        e = exp_c[i]
-        ok = (out["round"] == e["round"] and abs(out["price"] - e["price"]) < 1e-6
-              and out["mood"] == e["mood"] and out["status"] == e["status"])
-        if not ok:
-            failures.append("剧本C 第%d轮不符：期望 %s，实际 %s" % (i + 1, e, out))
-        rows.append({"scenario": "C 6 轮未成交", "input": {"player": p3, "action": act,
-                     "request_id": "c%d" % i}, "expected": e, "output": out, "match": ok})
-    if exp_c[-1]["status"] != "timeout":
-        failures.append("剧本C 期望 timeout（没谈成），实际 %s" % exp_c[-1]["status"])
+    exp_c = run_script("C 6 轮未成交", ["卖惨"] * 6, p3, "c", "timeout")
     if exp_c[-1]["price"] <= 8.0:
         failures.append("剧本C 价格已到成交线，无法证明超时路径")
 
     restart = call("/turn", {"player": p3, "action": "套近乎", "request_id": "c-restart"})
-    ok_restart = restart["restarted"] is True and restart["round"] == 1 and restart["status"] == "open"
+    want_restart = rules_ref.settle(rules_ref.new_game(), "套近乎")
+    ok_restart = (restart["restarted"] is True and restart["round"] == 1
+                  and restart["status"] == "open"
+                  and abs(restart["price"] - want_restart["price"]) < 1e-6
+                  and restart["mood"] == want_restart["mood"])
     if not ok_restart:
-        failures.append("重开新局失败：%s" % restart)
-    rows.append({"scenario": "C 终局后再出招自动重开", "input": {"player": p3, "action": "套近乎",
-                 "request_id": "c-restart"}, "expected": {"restarted": True, "round": 1},
+        failures.append("R13 重开新局不符：%s" % restart)
+    rows.append({"scenario": "C 终局后再出招 → R13 重开新局",
+                 "expected_from": "rules_ref.new_game() 后出「套近乎」",
+                 "input": {"player": p3, "action": "套近乎", "request_id": "c-restart"},
+                 "expected": {"restarted": True, "round": want_restart["round"],
+                              "price": want_restart["price"], "mood": want_restart["mood"],
+                              "status": want_restart["status"]},
                  "output": restart, "match": ok_restart})
 
     pathlib.Path("evidence").mkdir(exist_ok=True)
     pathlib.Path("evidence/backend-results.json").write_text(
         json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
+    # 记下本次三个剧本的 player，供导出 seekdb 证据时精确定位，避免带出历史脏数据
+    pathlib.Path("evidence/players.json").write_text(
+        json.dumps({"A": p1, "B": p2, "C": p3}, ensure_ascii=False, indent=2), encoding="utf-8")
 
     print("API_BASE =", BASE)
-    print("剧本A：%s → %s 元，%d 轮，%s" % (
+    print("剧本A：%s → %.1f 元，%d 轮，%s（声明复算）" % (
         " / ".join(acts_a), exp_a[-1]["price"], exp_a[-1]["round"], exp_a[-1]["status"]))
-    print("剧本B：%s → 情绪 %d，%s" % (
-        " / ".join(acts_b), exp_b[-1]["mood"], exp_b[-1]["status"]))
-    print("剧本C：%s → %.1f 元，%d 轮，%s（没到 8.0 不算成交）" % (
-        " / ".join(acts_c), exp_c[-1]["price"], exp_c[-1]["round"], exp_c[-1]["status"]))
+    print("剧本B：走人威胁 ×3 → 情绪 %d，%s" % (exp_b[-1]["mood"], exp_b[-1]["status"]))
+    print("剧本C：卖惨 ×6 → %.1f 元，%d 轮，%s（没到 8.0 不算成交）" % (
+        exp_c[-1]["price"], exp_c[-1]["round"], exp_c[-1]["status"]))
     print("证据已写入 evidence/backend-results.json（%d 条）" % len(rows))
     if failures:
         print("\n失败 %d 项：" % len(failures))
         for f in failures:
             print(" -", f)
         return 1
-    print("\n全部通过：数值与本地内核逐字段一致，幂等与持久化均成立。")
+    print("\n全部通过：接口返回与 README 声明的规则逐字段一致（期望值由 rules_ref 独立算出）。")
     return 0
 
 

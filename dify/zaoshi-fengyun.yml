@@ -5,7 +5,7 @@ app:
   mode: workflow
   icon: 🥒
   icon_background: "#E0F2E9"
-  description: 6 轮内把老王的黄瓜从 12 元/斤砍到 8 元/斤；局面存在 seekdb，关掉页面再回来仍在原局
+  description: 6 轮内把老王的黄瓜从 12.0 元/斤砍到 8.0 元/斤及以下才算成交；局面存在 seekdb，关掉页面再回来仍在原局
 workflow:
   environment_variables:
     - id: zaoshi-api
